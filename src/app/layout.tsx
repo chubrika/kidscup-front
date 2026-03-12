@@ -28,7 +28,6 @@ export default async function RootLayout({
   let categories: Awaited<ReturnType<typeof getCategories>> = [];
   try {
     categories = await getCategories();
-    console.log(categories);
   } catch {
     // Backend may be down; nav still works with empty list
   }

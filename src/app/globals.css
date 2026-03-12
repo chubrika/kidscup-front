@@ -1,8 +1,32 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Arial Caps";
+  src: url("/assets/bpg-arial-caps-webfont.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dejavu Sans";
+  src: url("/assets/dejavu-sans-webfont.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.arial-caps {
+  font-family: "Arial Caps", sans-serif;
+}
+
+.dejavu-sans {
+  font-family: "Dejavu Sans", sans-serif;
 }
 
 @theme inline {

@@ -2,8 +2,23 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import type { Category } from "@/lib/api";
 import { slugify } from "@/lib/utils";
+
+const MAIN_NAV = [
+  { href: "/", label: "მთავარი" },
+  { href: "/news", label: "სიახლეები" },
+  { href: "/photo", label: "ფოტო" },
+  { href: "/video", label: "ვიდეო" },
+] as const;
+
+const SUB_NAV = [
+  { href: "/teams", label: "კლუბები" },
+  { href: "/players", label: "მოთამაშეები" },
+  { href: "/standings", label: "ცხრილები" },
+  { href: "/calendar", label: "კალენდარი" },
+] as const;
 
 type HeaderProps = {
   categories: Category[];
@@ -11,7 +26,10 @@ type HeaderProps = {
 
 export function Header({ categories }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -23,6 +41,14 @@ export function Header({ categories }: HeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      setMobileMenuOpen(false);
+      setMobileCategoriesOpen(false);
+      setDropdownOpen(false);
+    });
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-[#00306d] backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -32,25 +58,16 @@ export function Header({ categories }: HeaderProps) {
         >
           KidsCup
         </Link>
-        <nav className="flex items-center gap-6 text-sm font-medium text-white">
-          <Link
-            href="/"
-            className="transition-colors text-white"
-          >
-            მთავარი
-          </Link>
-          <Link
-            href="/teams"
-            className="transition-colors text-white"
-          >
-            გუნდები
-          </Link>
-          <Link
-            href="/players"
-            className="transition-colors text-white"
-          >
-            მოთამაშეები
-          </Link>
+        <nav className="hidden items-center gap-6 text-md font-medium text-white arial-caps md:flex">
+          {MAIN_NAV.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`transition-colors ${pathname === href ? "font-bold text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+            >
+              {label}
+            </Link>
+          ))}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
@@ -93,7 +110,120 @@ export function Header({ categories }: HeaderProps) {
             )}
           </div>
         </nav>
+
+        <button
+          type="button"
+          className="inline-flex items-center justify-center rounded-md p-2 text-white md:hidden"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-nav"
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          {mobileMenuOpen ? (
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
       </div>
+
+      {/* Subheader navigation */}
+      <div className="hidden border-t border-white/20 bg-[#002554] md:block dejavu-sans">
+        <div className="mx-auto flex max-w-6xl justify-start gap-8 px-4 py-2 text-md font-medium text-white sm:px-6 md:gap-10">
+          {SUB_NAV.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`transition-colors ${pathname === href ? "font-bold text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {mobileMenuOpen && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            aria-label="Close menu overlay"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div
+            id="mobile-nav"
+            className="absolute left-0 right-0 top-16 z-50 border-b border-zinc-200 bg-[#00306d] md:hidden"
+          >
+            <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
+              <div className="flex flex-col gap-1 text-sm font-medium text-white">
+                <span className="mb-1 px-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/70">მთავარი ნავიგაცია</span>
+                {MAIN_NAV.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded px-2 py-2 hover:bg-white/10"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+
+                <span className="mb-1 mt-3 px-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/70">ქვემენიუ</span>
+                {SUB_NAV.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded px-2 py-2 hover:bg-white/10"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+
+                <button
+                  type="button"
+                  className="flex items-center justify-between rounded px-2 py-2 hover:bg-white/10"
+                  aria-expanded={mobileCategoriesOpen}
+                  onClick={() => setMobileCategoriesOpen((v) => !v)}
+                >
+                  <span>ჩემპიონატები</span>
+                  <svg
+                    className={`h-4 w-4 transition-transform ${mobileCategoriesOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {mobileCategoriesOpen && (
+                  <div className="ml-2 border-l border-white/20 pl-2">
+                    {categories.length === 0 ? (
+                      <div className="px-2 py-2 text-white/80">No categories</div>
+                    ) : (
+                      categories.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          href={`/league/${slugify(cat.name)}`}
+                          className="block rounded px-2 py-2 hover:bg-white/10"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {cat.name}
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </header>
   );
 }

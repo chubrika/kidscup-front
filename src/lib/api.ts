@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 export type Category = {
   id: string;
@@ -30,8 +30,25 @@ export type Player = {
     | string;
 };
 
+export type StandingRow = {
+  teamId: string;
+  teamName: string;
+  played: number;
+  won: number;
+  lost: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointsDiff: number;
+  points: number;
+};
+
+export type StandingsGroup = {
+  categoryId: string;
+  categoryName: string;
+  standings: StandingRow[];
+};
+
 export async function getCategories(): Promise<Category[]> {
-  console.log(API_URL);
   const res = await fetch(`${API_URL}/categories`, {
     headers: { "Content-Type": "application/json" },
     next: { revalidate: 60 },
@@ -48,7 +65,6 @@ export async function getTeams(ageCategory?: string): Promise<Team[]> {
     headers: { "Content-Type": "application/json" },
     next: { revalidate: 60 },
   });
-  console.log(res);
   if (!res.ok) throw new Error("Failed to fetch teams");
   return res.json();
 }
@@ -62,5 +78,17 @@ export async function getPlayers(teamId?: string): Promise<Player[]> {
     next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error("Failed to fetch players");
+  return res.json();
+}
+
+export async function getStandings(ageCategory?: string | null): Promise<StandingsGroup[]> {
+  const url = ageCategory
+    ? `${API_URL}/standings?ageCategory=${encodeURIComponent(ageCategory)}`
+    : `${API_URL}/standings`;
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch standings");
   return res.json();
 }
