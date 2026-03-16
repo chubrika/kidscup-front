@@ -29,6 +29,17 @@ function positionBorderColor(position?: string | null) {
   return POSITION_COLORS[position] ?? undefined;
 }
 
+/** Format date as day.month.year (e.g. 2.3.2001). Deterministic for SSR/hydration. */
+function formatBirthDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
 type Player = {
   _id: string;
   number?: number | string;
@@ -127,10 +138,8 @@ export default function PlayersListClient({ players }: { players: Player[] }) {
             <span className="text-xs font-semibold text-zinc-700">
               დაბ. თარიღი
             </span>
-            <span className="text-sm text-zinc-900">
-              {player.birthDate
-                ? new Date(player.birthDate).toLocaleDateString("ka-GE")
-                : "—"}
+            <span className="text-sm text-zinc-700 arial-caps">
+              {formatBirthDate(player.birthDate)}
             </span>
           </li>
         </ul>

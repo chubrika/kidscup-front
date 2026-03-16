@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategories } from "@/lib/api";
 import { slugify } from "@/lib/utils";
+import { LeagueMatchesSection } from "@/components/LeagueMatchesSection";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -28,9 +29,9 @@ export default async function LeagueCategoryPage({ params }: Props) {
       <h1 className="text-2xl font-bold text-zinc-900">
         ლიგა — {category.name}
       </h1>
-      <p className="mt-2 text-zinc-600">
-        Tournament list for this category will go here.
-      </p>
+      <div className="mt-6">
+        <LeagueMatchesSection category={category} />
+      </div>
     </div>
   );
 }

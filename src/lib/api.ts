@@ -52,8 +52,26 @@ export type Match = {
   updatedAt?: string;
 };
 
+export type Season = {
+  _id: string;
+  name: string;
+  ageCategory?: Category | string;
+  startDate: string;
+  endDate: string;
+  isActive?: boolean;
+};
+
+/** When populated by the API, teamId is an object with team details */
+export type StandingRowTeamRef = {
+  _id: string;
+  name?: string;
+  logo?: string;
+  city?: string;
+  coachName?: string;
+};
+
 export type StandingRow = {
-  teamId: string;
+  teamId: string | StandingRowTeamRef;
   teamName: string;
   played: number;
   won: number;
@@ -118,10 +136,12 @@ export async function getStandings(ageCategory?: string | null): Promise<Standin
 export async function getMatches(params?: {
   status?: MatchStatus;
   ageCategory?: string | null;
+  seasonId?: string | null;
 }): Promise<Match[]> {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.ageCategory) search.set("ageCategory", params.ageCategory);
+  if (params?.seasonId) search.set("seasonId", params.seasonId);
 
   const query = search.toString();
   const url = query ? `${API_URL}/matches?${query}` : `${API_URL}/matches`;
@@ -131,5 +151,17 @@ export async function getMatches(params?: {
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error("Failed to fetch matches");
+  return res.json();
+}
+
+export async function getSeasons(ageCategory?: string | null): Promise<Season[]> {
+  const url = ageCategory
+    ? `${API_URL}/seasons?ageCategory=${encodeURIComponent(ageCategory)}`
+    : `${API_URL}/seasons`;
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch seasons");
   return res.json();
 }

@@ -2,12 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import type { Category, StandingsGroup, StandingRow, Team } from "@/lib/api";
+import type {
+  Category,
+  StandingsGroup,
+  StandingRow,
+  StandingRowTeamRef,
+  Team,
+} from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import { CategoryTabs } from "@/components/CategoryTabs";
+import type { Dispatch, SetStateAction } from "react";
 
 type StandingsTableProps = {
   categories: Category[];
+  selectedCategoryId?: string | null;
+  onCategoryChange?: Dispatch<SetStateAction<string | null>>;
 };
 
 type EnrichedRow = StandingRow & {
@@ -37,7 +46,7 @@ async function fetchTeams(categoryId: string | null): Promise<Team[]> {
 }
 
 function normalizeTeamId(teamId: StandingRow["teamId"]): string {
-  const raw = typeof teamId === "string" ? teamId : teamId._id;
+  const raw = typeof teamId === "string" ? teamId : (teamId as { _id?: string })._id;
   return String(raw);
 }
 
@@ -51,7 +60,8 @@ function enrichStandings(standings: StandingRow[], teams: Team[]): EnrichedRow[]
   return standings.map((row) => {
     const id = normalizeTeamId(row.teamId);
     const team = byId.get(id) ?? byId.get(String(id));
-    const populated = typeof row.teamId === "object" ? row.teamId : null;
+    const populated: StandingRowTeamRef | null =
+      typeof row.teamId === "object" ? row.teamId : null;
     return {
       ...row,
       teamId: id,
@@ -63,10 +73,23 @@ function enrichStandings(standings: StandingRow[], teams: Team[]): EnrichedRow[]
   });
 }
 
-export function StandingsTable({ categories }: StandingsTableProps) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+export function StandingsTable({
+  categories,
+  selectedCategoryId: controlledCategoryId,
+  onCategoryChange,
+}: StandingsTableProps) {
+  const [internalCategoryId, setInternalCategoryId] = useState<string | null>(
     categories[0]?._id ?? null
   );
+  const isControlled = controlledCategoryId !== undefined;
+  const selectedCategoryId = isControlled ? (controlledCategoryId ?? null) : internalCategoryId;
+  const setSelectedCategoryId: Dispatch<SetStateAction<string | null>> = isControlled
+    ? (value) => {
+        const next = typeof value === "function" ? value(controlledCategoryId ?? null) : value;
+        onCategoryChange?.(next);
+      }
+    : setInternalCategoryId;
+
   const [standingsGroups, setStandingsGroups] = useState<StandingsGroup[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,12 +131,14 @@ export function StandingsTable({ categories }: StandingsTableProps) {
 
   return (
     <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
-      <CategoryTabs
-        categories={categories}
-        value={selectedCategoryId}
-        onChange={selectCategory}
-        className="rounded-t-xl"
-      />
+      {!isControlled && (
+        <CategoryTabs
+          categories={categories}
+          value={selectedCategoryId}
+          onChange={selectCategory}
+          className="rounded-t-xl"
+        />
+      )}
       <div className="overflow-x-auto">
         {error && (
           <p className="p-4 text-red-600 text-sm">{error}</p>

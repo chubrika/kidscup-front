@@ -55,9 +55,9 @@ export function Header({ categories }: HeaderProps) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pl-[4px] pr-[4px]"
+          className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pt-[4px] pb-[4px]"
         >
-          <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="w-full h-full" />
+          <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" />
         </Link>
         <nav className="hidden items-center h-full gap-6 text-md font-medium text-white arial-caps md:flex">
           {MAIN_NAV.map(({ href, label }) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Category } from "@/lib/api";
+import type { Category, StandingRow } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import type { StandingsGroup } from "@/lib/api";
 
@@ -16,6 +16,11 @@ async function fetchStandings(ageCategoryId: string | null): Promise<StandingsGr
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch standings");
   return res.json();
+}
+
+function normalizeTeamId(teamId: StandingRow["teamId"]): string {
+  const raw = typeof teamId === "string" ? teamId : (teamId as { _id?: string })._id;
+  return String(raw);
 }
 
 export function StandingsSection({ categories }: StandingsSectionProps) {
@@ -110,7 +115,7 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
                         group.standings.map((row, index) => {
                           return (
                             <tr
-                              key={row.teamId}
+                              key={normalizeTeamId(row.teamId)}
                               className="border-b border-zinc-100 hover:bg-zinc-50/80"
                             >
                               <td className="py-2.5 pl-4 text-center text-zinc-600 font-medium">
