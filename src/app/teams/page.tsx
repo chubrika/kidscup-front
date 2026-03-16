@@ -24,8 +24,9 @@ export default async function TeamsPage() {
           {teams.map((team) => (
             <li
               key={team._id}
-              className="flex flex-col items-center justify-center rounded-lg border border-zinc-200 bg-zinc-200 p-4 shadow-sm"
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-4 "
             >
+              <div className="flex flex-col w-full items-center justify-center gap-2 bg-[#225daa0d] p-4 rounded-xl">
               {team.logo && (
                 <Image
                   src={team.logo}
@@ -35,7 +36,8 @@ export default async function TeamsPage() {
                   className="mb-2 rounded object-contain rounded-full"
                 />
               )}
-              <span className="font-medium text-lg text-zinc-900">{team.name}</span>
+              <span className="font-medium arial-caps text-lg text-zinc-900">{team.name}</span>
+              </div>
             </li>
           ))}
         </ul>

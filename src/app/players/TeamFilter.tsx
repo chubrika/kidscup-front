@@ -2,7 +2,8 @@
 
 import type { Team } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 
 type Props = {
   teams: Team[];
@@ -13,7 +14,8 @@ export default function TeamFilter({ teams, selectedTeamId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentTeamId = selectedTeamId ?? "";
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const options = useMemo(
     () =>
@@ -21,36 +23,69 @@ export default function TeamFilter({ teams, selectedTeamId }: Props) {
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((t) => ({ value: t._id, label: t.name })),
-    [teams],
+    [teams]
   );
 
+  const selected =
+    options.find((o) => o.value === selectedTeamId)?.label || "ყველა კლუბი";
+
+  function selectTeam(value: string) {
+    const next = new URLSearchParams(searchParams.toString());
+
+    if (!value) next.delete("teamId");
+    else next.set("teamId", value);
+
+    const qs = next.toString();
+    router.push(qs ? `/players?${qs}` : "/players");
+
+    setOpen(false);
+  }
+
+  // click outside handler
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!dropdownRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-3">
-      <div className="min-w-[220px]">
-        <select
-          id="teamId"
-          value={currentTeamId}
-          onChange={(e) => {
-            const next = new URLSearchParams(searchParams.toString());
-            const value = e.target.value;
+    <div ref={dropdownRef} className="relative mt-4 w-[260px]">
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm shadow-sm hover:border-zinc-400"
+      >
+        <span className="arial-caps">{selected}</span>
+        <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
+      </button>
 
-            if (!value) next.delete("teamId");
-            else next.set("teamId", value);
+      {open && (
+        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
+          <div
+            onClick={() => selectTeam("")}
+            className="cursor-pointer arial-caps px-4 py-2 text-sm hover:bg-zinc-100"
+          >
+            ყველა კლუბი
+          </div>
 
-            const qs = next.toString();
-            router.push(qs ? `/players?${qs}` : "/players");
-          }}
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-0 transition focus:border-zinc-400"
-        >
-          <option value="">ყველა კლუბი</option>
           {options.map((o) => (
-            <option key={o.value} value={o.value}>
+            <div
+              key={o.value}
+              onClick={() => selectTeam(o.value)}
+              className="cursor-pointer arial-caps px-4 py-2 text-sm hover:bg-zinc-100"
+            >
               {o.label}
-            </option>
+            </div>
           ))}
-        </select>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
-

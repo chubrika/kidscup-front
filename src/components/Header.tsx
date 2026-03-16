@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import type { Category } from "@/lib/api";
 import { slugify } from "@/lib/utils";
+import Image from "next/image";
 
 const MAIN_NAV = [
   { href: "/", label: "მთავარი" },
@@ -56,7 +57,7 @@ export function Header({ categories }: HeaderProps) {
           href="/"
           className="text-xl font-bold tracking-tight text-white"
         >
-          KidsCup
+          <Image src="/logo.png" alt="KidsCup" width={60} height={60} className="w-17 h-17" />
         </Link>
         <nav className="hidden items-center gap-6 text-md font-medium text-white arial-caps md:flex">
           {MAIN_NAV.map(({ href, label }) => (
