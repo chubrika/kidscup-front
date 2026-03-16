@@ -107,7 +107,7 @@ export function StandingsTable({ categories }: StandingsTableProps) {
   );
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
       <CategoryTabs
         categories={categories}
         value={selectedCategoryId}

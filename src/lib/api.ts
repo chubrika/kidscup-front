@@ -30,6 +30,28 @@ export type Player = {
     | string;
 };
 
+export type MatchStatus =
+  | "scheduled"
+  | "live"
+  | "finished"
+  | "postponed"
+  | "cancelled";
+
+export type Match = {
+  _id: string;
+  homeTeam: Team | string;
+  awayTeam: Team | string;
+  date: string;
+  time?: string;
+  location?: string;
+  ageCategory?: Category | string;
+  status: MatchStatus;
+  scoreHome?: number;
+  scoreAway?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type StandingRow = {
   teamId: string;
   teamName: string;
@@ -90,5 +112,24 @@ export async function getStandings(ageCategory?: string | null): Promise<Standin
     next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error("Failed to fetch standings");
+  return res.json();
+}
+
+export async function getMatches(params?: {
+  status?: MatchStatus;
+  ageCategory?: string | null;
+}): Promise<Match[]> {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.ageCategory) search.set("ageCategory", params.ageCategory);
+
+  const query = search.toString();
+  const url = query ? `${API_URL}/matches?${query}` : `${API_URL}/matches`;
+
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch matches");
   return res.json();
 }

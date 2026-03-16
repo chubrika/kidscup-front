@@ -49,7 +49,7 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
   }, [selectedCategoryId]);
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
       <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
         <div className="flex justify-center gap-2" role="tablist" aria-label="კატეგორიის ფილტრი">
           {categories.map((cat) => (

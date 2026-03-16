@@ -51,29 +51,32 @@ export function Header({ categories }: HeaderProps) {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-[#00306d] backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-[#002554] backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-white"
+          className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pl-[4px] pr-[4px]"
         >
-          <Image src="/logo.png" alt="KidsCup" width={60} height={60} className="w-17 h-17" />
+          <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="w-full h-full" />
         </Link>
-        <nav className="hidden items-center gap-6 text-md font-medium text-white arial-caps md:flex">
+        <nav className="hidden items-center h-full gap-6 text-md font-medium text-white arial-caps md:flex">
           {MAIN_NAV.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              className={`transition-colors ${pathname === href ? "font-bold text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+              className={`flex relative h-full items-center justify-center transition-colors`}
             >
               {label}
+              {pathname === href && (
+                <span className="absolute bottom-0 left-0 right-0 h-[3px] min-h-[3px] bg-[#fd7209] rounded-t-full" />
+              )}
             </Link>
           ))}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setDropdownOpen((o) => !o)}
-              className="flex items-center gap-1 transition-colors text-white focus:outline-none  outline-none rounded"
+              className="flex cursor-pointer items-center gap-1 transition-colors text-white focus:outline-none  outline-none rounded"
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
@@ -89,7 +92,7 @@ export function Header({ categories }: HeaderProps) {
             </button>
             {dropdownOpen && (
               <div
-                className="absolute left-0 top-full mt-1 min-w-[180px] rounded-md border border-zinc-200 bg-white py-1 shadow-lg text-black"
+                className="absolute left-0 top-[40px] mt-1 min-w-[130px] rounded-md border border-zinc-200 bg-white py-1 shadow-lg text-black"
                 role="menu"
               >
                 {categories.length === 0 ? (
@@ -133,13 +136,13 @@ export function Header({ categories }: HeaderProps) {
       </div>
 
       {/* Subheader navigation */}
-      <div className="hidden border-t border-white/20 bg-[#002554] md:block dejavu-sans">
+      <div className="hidden border-t border-white/20  md:block dejavu-sans">
         <div className="mx-auto flex max-w-6xl justify-start gap-8 px-4 py-2 text-md font-medium text-white sm:px-6 md:gap-10">
           {SUB_NAV.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              className={`transition-colors ${pathname === href ? "font-bold text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+              className={`transition-colors ${pathname === href ? "text-[#fd7209]" : "text-white/90 hover:text-white"}`}
             >
               {label}
             </Link>

@@ -39,7 +39,7 @@ export function CategoryTabs({
                   aria-selected={isSelected}
                   onClick={() => onChange(cat._id)}
                   className={`
-                    relative rounded-t-lg px-4 py-3 sm:px-5 sm:py-3.5
+                    relative rounded-t-lg px-4 py-3 sm:px-5 sm:py-3.5 cursor-pointer
                     transition-all duration-200 ease-out
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00306d] focus-visible:ring-offset-2
                     ${isSelected
