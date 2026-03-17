@@ -193,7 +193,7 @@ export function StandingsTable({
                   {allRows.map((row, index) => (
                     <tr
                       key={normalizeTeamId(row.teamId)}
-                      className="border-b border-zinc-100 hover:bg-zinc-50/80"
+                      className="group border-b border-zinc-100 hover:bg-zinc-100/80"
                     >
                       <td className="py-3 pl-4 text-center text-zinc-600 font-medium">
                         {index + 1}
@@ -206,7 +206,7 @@ export function StandingsTable({
                                 src={row.logo}
                                 alt=""
                                 fill
-                                className="object-cover"
+                                className="object-cover transition-transform duration-200 ease-out group-hover:scale-110"
                                 sizes="36px"
                               />
                             ) : (

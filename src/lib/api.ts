@@ -165,3 +165,31 @@ export async function getSeasons(ageCategory?: string | null): Promise<Season[]>
   if (!res.ok) throw new Error("Failed to fetch seasons");
   return res.json();
 }
+
+export type News = {
+  _id: string;
+  title: string;
+  description?: string;
+  photoUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getNews(): Promise<News[]> {
+  const res = await fetch(`${API_URL}/news`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch news");
+  return res.json();
+}
+
+export async function getNewsById(id: string): Promise<News | null> {
+  const res = await fetch(`${API_URL}/news/${encodeURIComponent(id)}`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch news");
+  return res.json();
+}

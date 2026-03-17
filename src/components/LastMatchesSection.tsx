@@ -139,7 +139,7 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
                         <span className="font-medium text-sm truncate min-w-0 text-left text-[#00306d]">
                           {getTeamName(m.homeTeam)}
                         </span>
-                        <span className="flex-shrink-0 text-sm items-center justify-center rounded-full border border-zinc-200 px-1 py-1 text-[11px] text-zinc-600 tracking-wide dejavu-sans">
+                        <span className="flex-shrink-0 bg-[#00306d] font-inherit text-sm items-center justify-center rounded-full border border-zinc-200 px-2 py-1 text-[11px] text-white tracking-wide">
                           {formatScore(m)}
                         </span>
                         <span className="font-medium text-sm truncate min-w-0 text-right text-[#00306d]">

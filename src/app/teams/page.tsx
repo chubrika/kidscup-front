@@ -12,12 +12,12 @@ export default async function TeamsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">გუნდები</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 arial-caps">გუნდები</h1>
       {error && (
-        <p className="mt-4 text-red-600">{error}</p>
+        <p className="mt-4 text-red-600 dejavu-sans">{error}</p>
       )}
       {!error && teams.length === 0 && (
-        <p className="mt-4 text-zinc-600">გუნდები ჯერ არ არის.</p>
+        <p className="mt-4 text-zinc-600 dejavu-sans">გუნდები ჯერ არ არის.</p>
       )}
       {!error && teams.length > 0 && (
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
