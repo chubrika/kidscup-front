@@ -1,4 +1,16 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// NEXT_PUBLIC_* values are embedded at build time for browser bundles.
+// In production we prefer failing fast over silently calling localhost.
+export const API_URL =
+  envApiUrl ??
+  (process.env.NODE_ENV === "production"
+    ? (() => {
+        throw new Error(
+          "Missing NEXT_PUBLIC_API_URL. Set it to your backend base URL (e.g. https://kidscup-back.onrender.com/api)."
+        );
+      })()
+    : "http://localhost:3000/api");
 
 export type Category = {
   id: string;
