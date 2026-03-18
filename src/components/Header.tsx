@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { Category } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 import Image from "next/image";
+import { LiveBadge } from "@/components/live/LiveBadge";
 
 const MAIN_NAV = [
   { href: "/", label: "მთავარი" },
@@ -19,6 +20,7 @@ const SUB_NAV = [
   { href: "/players", label: "მოთამაშეები" },
   { href: "/standings", label: "ცხრილები" },
   { href: "/calendar", label: "კალენდარი" },
+  { href: "/contact", label: "კონტაქტი" },
 ] as const;
 
 type HeaderProps = {
@@ -53,12 +55,14 @@ export function Header({ categories }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-[#002554] backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pt-[4px] pb-[4px]"
-        >
-          <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pt-[4px] pb-[4px]"
+          >
+            <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" />
+          </Link>
+        </div>
         <nav className="hidden items-center h-full gap-6 text-md font-medium text-white arial-caps md:flex">
           {MAIN_NAV.map(({ href, label }) => (
             <Link
@@ -115,38 +119,46 @@ export function Header({ categories }: HeaderProps) {
           </div>
         </nav>
 
-        <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-md p-2 text-white md:hidden"
-          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={mobileMenuOpen}
-          aria-controls="mobile-nav"
-          onClick={() => setMobileMenuOpen((v) => !v)}
-        >
-          {mobileMenuOpen ? (
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <LiveBadge />
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-md p-2 text-white"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+          >
+            {mobileMenuOpen ? (
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Subheader navigation */}
       <div className="hidden border-t border-white/20  md:block dejavu-sans">
-        <div className="mx-auto flex max-w-6xl justify-start gap-8 px-4 py-2 text-md font-medium text-white sm:px-6 md:gap-10">
-          {SUB_NAV.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`transition-colors ${pathname === href ? "text-[#fd7209]" : "text-white/90 hover:text-white"}`}
-            >
-              {label}
-            </Link>
-          ))}
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 text-md font-medium text-white sm:px-6">
+          <div className="flex items-center gap-8 md:gap-10">
+            {SUB_NAV.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`transition-colors ${pathname === href ? "text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <div className="flex-shrink-0">
+            <LiveBadge />
+          </div>
         </div>
       </div>
 

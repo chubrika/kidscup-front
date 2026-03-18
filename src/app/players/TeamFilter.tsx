@@ -4,6 +4,7 @@ import type { Team } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import Image from "next/image";
 
 type Props = {
   teams: Team[];
@@ -22,7 +23,7 @@ export default function TeamFilter({ teams, selectedTeamId }: Props) {
       teams
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((t) => ({ value: t._id, label: t.name })),
+        .map((t) => ({ value: t._id, label: t.name, logo: t.logo })),
     [teams]
   );
 
@@ -79,9 +80,10 @@ export default function TeamFilter({ teams, selectedTeamId }: Props) {
             <div
               key={o.value}
               onClick={() => selectTeam(o.value)}
-              className="cursor-pointer arial-caps px-4 py-2 text-sm hover:bg-zinc-100"
+              className="cursor-pointer flex items-center gap-2 arial-caps px-4 py-2 text-sm hover:bg-zinc-100"
             >
-              {o.label}
+              {o.logo && <Image src={o.logo} alt={o.label} width={20} height={20} className="rounded-full" />}
+              <span className="text-md font-medium">{o.label}</span>
             </div>
           ))}
         </div>
