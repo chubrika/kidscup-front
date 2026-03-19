@@ -22,7 +22,7 @@ export function MobileBottomNav() {
     >
       <ul className="mx-auto dejavu-sans grid h-[60px] max-w-3xl grid-cols-5 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1">
         {MOBILE_SUB_NAV.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
           return (
             <li key={href}>

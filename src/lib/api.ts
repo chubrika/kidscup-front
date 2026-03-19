@@ -116,6 +116,16 @@ export async function getTeams(ageCategory?: string): Promise<Team[]> {
   return res.json();
 }
 
+export async function getTeamById(id: string): Promise<Team | null> {
+  const res = await fetch(`${API_URL}/teams/${encodeURIComponent(id)}`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch team");
+  return res.json();
+}
+
 export async function getPlayers(teamId?: string): Promise<Player[]> {
   const url = teamId
     ? `${API_URL}/players?teamId=${encodeURIComponent(teamId)}`
@@ -125,6 +135,16 @@ export async function getPlayers(teamId?: string): Promise<Player[]> {
     next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error("Failed to fetch players");
+  return res.json();
+}
+
+export async function getPlayerById(id: string): Promise<Player | null> {
+  const res = await fetch(`${API_URL}/players/${encodeURIComponent(id)}`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch player");
   return res.json();
 }
 
@@ -158,6 +178,31 @@ export async function getMatches(params?: {
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error("Failed to fetch matches");
+  return res.json();
+}
+
+export type PlayerMatchStats = {
+  playerId: string;
+  teamId: string;
+  points: number;
+  assists: number;
+  rebounds: number;
+  steals: number;
+  blocks: number;
+  fouls: number;
+};
+
+export type MatchStatsResponse = {
+  teamScores: Array<{ teamId: string; points: number }>;
+  playerStats: PlayerMatchStats[];
+};
+
+export async function getMatchStats(matchId: string): Promise<MatchStatsResponse> {
+  const res = await fetch(`${API_URL}/matches/${encodeURIComponent(matchId)}/stats`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch match stats");
   return res.json();
 }
 

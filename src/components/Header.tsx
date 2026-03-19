@@ -153,15 +153,18 @@ export function Header({ categories }: HeaderProps) {
       <div className="hidden border-t border-white/20  md:block dejavu-sans">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 text-md font-medium text-white sm:px-6">
           <div className="flex items-center gap-8 md:gap-10">
-            {SUB_NAV.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`transition-colors ${pathname === href ? "text-[#fd7209]" : "text-white/90 hover:text-white"}`}
-              >
-                {label}
-              </Link>
-            ))}
+            {SUB_NAV.map(({ href, label }) => {
+              const isActive = pathname === href || pathname.startsWith(`${href}/`);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`transition-colors ${isActive ? "text-[#fd7209]" : "text-white/90 hover:text-white"}`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
           <div className="flex-shrink-0">
             <LiveBadge />

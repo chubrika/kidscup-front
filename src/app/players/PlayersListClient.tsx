@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 const POSITION_LABELS: Record<string, string> = {
   PG: "გამთამაშებელი",
@@ -84,65 +85,70 @@ export default function PlayersListClient({ players }: { players: Player[] }) {
         key={player._id}
         className="group relative overflow-hidden rounded-md border border-zinc-200 transition"
       >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50/70" />
+        <Link
+          href={`/players/${player._id}`}
+          className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00306d]/50"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50/70" />
 
-        <div className="relative flex items-start justify-between overflow-hidden gap-4 bg-gray-200">
-          <div className="min-w-0 px-4 py-2 h-[120px]">
-            <div className="flex h-full justify-between flex-col gap-1">
-              <div className="text-sm font-semibold text-zinc-900 ring-1 ring-zinc-200 px-2">
-                {player.number}
-              </div>
+          <div className="relative flex items-start justify-between overflow-hidden gap-4 bg-gray-200">
+            <div className="min-w-0 px-4 py-2 h-[120px]">
+              <div className="flex h-full justify-between flex-col gap-1">
+                <div className="text-sm font-semibold text-zinc-900 ring-1 ring-zinc-200 px-2">
+                  {player.number}
+                </div>
 
-              <div className="truncate arial-caps text-sm font-semibold text-zinc-700 mb-2 text-wrap">
-                {player.firstName} {player.lastName}
+                <div className="truncate arial-caps text-sm font-semibold text-zinc-700 mb-2 text-wrap">
+                  {player.firstName} {player.lastName}
+                </div>
               </div>
+            </div>
+
+            <div className="shrink-0 w-[120px]">
+              <Image
+                src={player.photo || "/avatar.png"}
+                alt={`${player.firstName} ${player.lastName}`}
+                width={120}
+                height={120}
+                className="h-full w-full object-cover ring-1 ring-zinc-200"
+              />
             </div>
           </div>
 
-          <div className="shrink-0 w-[120px]">
-            <Image
-              src={player.photo || "/avatar.png"}
-              alt={`${player.firstName} ${player.lastName}`}
-              width={120}
-              height={120}
-              className="h-full w-full object-cover ring-1 ring-zinc-200"
-            />
-          </div>
-        </div>
+          <ul className="rounded-md bg-zinc-50 dejavu-sans">
+            <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
+              <span className="text-xs font-semibold text-zinc-700">გუნდი</span>
+              <span className="text-sm font-semibold text-zinc-900">{t?.name ?? "—"}</span>
+            </li>
 
-        <ul className="rounded-md bg-zinc-50 dejavu-sans">
-          <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
-            <span className="text-xs font-semibold text-zinc-700">გუნდი</span>
-            <span className="text-sm font-semibold text-zinc-900">{t?.name ?? "—"}</span>
-          </li>
+            <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
+              <span className="text-xs font-semibold text-zinc-700">პოზიცია</span>
+              <span
+                className="inline-flex items-center rounded-full font-semibold py-0.5 text-xs text-black"
+                style={{
+                  color: positionBorderColor(player.position),
+                  paddingLeft: 8,
+                }}
+              >
+                {formatPosition(player.position)}
+              </span>
+            </li>
 
-          <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
-            <span className="text-xs font-semibold text-zinc-700">პოზიცია</span>
-            <span
-              className="inline-flex items-center rounded-full font-semibold py-0.5 text-xs text-black"
-              style={{
-                color: positionBorderColor(player.position),
-                paddingLeft: 8,
-              }}
-            >
-              {formatPosition(player.position)}
-            </span>
-          </li>
+            <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
+              <span className="text-xs font-semibold text-zinc-700">ქალაქი</span>
+              <span className="text-sm text-zinc-900">{t?.city || "—"}</span>
+            </li>
 
-          <li className="flex justify-between border-b border-zinc-200 px-4 py-2">
-            <span className="text-xs font-semibold text-zinc-700">ქალაქი</span>
-            <span className="text-sm text-zinc-900">{t?.city || "—"}</span>
-          </li>
-
-          <li className="flex justify-between px-4 py-2">
-            <span className="text-xs font-semibold text-zinc-700">
-              დაბ. თარიღი
-            </span>
-            <span className="text-sm text-zinc-700 arial-caps">
-              {formatBirthDate(player.birthDate)}
-            </span>
-          </li>
-        </ul>
+            <li className="flex justify-between px-4 py-2">
+              <span className="text-xs font-semibold text-zinc-700">
+                დაბ. თარიღი
+              </span>
+              <span className="text-sm text-zinc-700 arial-caps">
+                {formatBirthDate(player.birthDate)}
+              </span>
+            </li>
+          </ul>
+        </Link>
       </li>
     );
   };
