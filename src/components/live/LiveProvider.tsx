@@ -55,8 +55,11 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    let socket: Socket | null = null;
+    let socket: Socket | null = createSocket();
     let joinedMatchId: string | null = null;
+    let activeMatchId: string | null = null;
+    let refreshInFlight = false;
+    let refreshQueued = false;
 
     async function fetchStats(matchId: string): Promise<MatchStats | null> {
       try {
@@ -76,6 +79,11 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const manualUrl = readManualLiveUrl();
         if (manualUrl) {
           setLiveState({ isLive: true, liveUrl: manualUrl, liveMatch: null, liveStats: null });
+          if (joinedMatchId && socket?.connected) {
+            socket.emit("match:leave", { matchId: joinedMatchId });
+          }
+          joinedMatchId = null;
+          activeMatchId = null;
           return;
         }
 
@@ -92,6 +100,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const liveUrl = matches.map(pickStreamUrlFromMatch).find(Boolean) ?? "";
         const liveMatch = matches[0] ?? null;
         const matchId = liveMatch?._id ?? null;
+        activeMatchId = matchId;
 
         const liveStats = matchId ? await fetchStats(matchId) : null;
 
@@ -103,22 +112,13 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
           liveStats,
         }));
 
-        if (matchId) {
-          if (!socket) {
-            socket = createSocket();
-            socket.on("connect", () => {
-              socket?.emit("match:join", { matchId });
-              joinedMatchId = matchId;
-            });
-            socket.on("match:update", (payload: { matchId: string; stats: MatchStats }) => {
-              if (payload.matchId !== matchId) return;
-              setLiveState((prev) => ({ ...prev, liveStats: payload.stats }));
-            });
-          } else if (joinedMatchId !== matchId && socket.connected) {
-            if (joinedMatchId) socket.emit("match:leave", { matchId: joinedMatchId });
-            socket.emit("match:join", { matchId });
-            joinedMatchId = matchId;
-          }
+        if (matchId && socket?.connected && joinedMatchId !== matchId) {
+          if (joinedMatchId) socket.emit("match:leave", { matchId: joinedMatchId });
+          socket.emit("match:join", { matchId });
+          joinedMatchId = matchId;
+        } else if (!matchId && joinedMatchId && socket?.connected) {
+          socket.emit("match:leave", { matchId: joinedMatchId });
+          joinedMatchId = null;
         }
       } catch {
         if (cancelled) return;
@@ -127,11 +127,40 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    refresh();
-    const id = window.setInterval(refresh, 20_000);
+    async function scheduleRefresh() {
+      if (refreshInFlight) {
+        refreshQueued = true;
+        return;
+      }
+      refreshInFlight = true;
+      try {
+        do {
+          refreshQueued = false;
+          await refresh();
+        } while (!cancelled && refreshQueued);
+      } finally {
+        refreshInFlight = false;
+      }
+    }
+
+    socket.on("connect", () => {
+      if (activeMatchId) {
+        socket?.emit("match:join", { matchId: activeMatchId });
+        joinedMatchId = activeMatchId;
+      }
+      void scheduleRefresh();
+    });
+    socket.on("match:update", (payload: { matchId: string; stats: MatchStats }) => {
+      if (payload.matchId !== activeMatchId) return;
+      setLiveState((prev) => ({ ...prev, liveStats: payload.stats }));
+    });
+    socket.on("matches:live-changed", () => {
+      void scheduleRefresh();
+    });
+
+    void scheduleRefresh();
     return () => {
       cancelled = true;
-      window.clearInterval(id);
       if (socket && joinedMatchId) socket.emit("match:leave", { matchId: joinedMatchId });
       socket?.disconnect();
       socket = null;

@@ -23,6 +23,13 @@ const SUB_NAV = [
   { href: "/contact", label: "კონტაქტი" },
 ] as const;
 
+const MOBILE_NAV = [
+  { href: "/news", label: "სიახლეები" },
+  { href: "/photo", label: "ფოტო" },
+  { href: "/video", label: "ვიდეო" },
+  { href: "/contact", label: "კონტაქტი" }
+];
+
 type HeaderProps = {
   categories: Category[];
 };
@@ -176,24 +183,11 @@ export function Header({ categories }: HeaderProps) {
           >
             <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
               <div className="flex flex-col gap-1 text-sm font-medium text-white">
-                <span className="mb-1 px-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/70">მთავარი ნავიგაცია</span>
-                {MAIN_NAV.map(({ href, label }) => (
+                {MOBILE_NAV.map(({ href, label }) => (
                   <Link
                     key={href}
                     href={href}
-                    className="rounded px-2 py-2 hover:bg-white/10"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ))}
-
-                <span className="mb-1 mt-3 px-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/70">ქვემენიუ</span>
-                {SUB_NAV.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="rounded px-2 py-2 hover:bg-white/10"
+                    className="rounded arial-caps px-2 py-2 hover:bg-white/10"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {label}
@@ -206,7 +200,7 @@ export function Header({ categories }: HeaderProps) {
                   aria-expanded={mobileCategoriesOpen}
                   onClick={() => setMobileCategoriesOpen((v) => !v)}
                 >
-                  <span>ჩემპიონატები</span>
+                  <span className="arial-caps">ჩემპიონატები</span>
                   <svg
                     className={`h-4 w-4 transition-transform ${mobileCategoriesOpen ? "rotate-180" : ""}`}
                     fill="none"
