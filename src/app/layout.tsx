@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Kids Cup",
-  description: "Kids Cup - Youth sports and events",
+  description: "Kids Cup - ბავშვთა საკალათბურთო ჩემპიონატი",
 };
 
 export default async function RootLayout({

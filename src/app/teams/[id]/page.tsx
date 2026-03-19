@@ -76,30 +76,31 @@ function formatTime(time?: string): string {
 }
 
 function buildTeamGames(teamId: string, matches: Match[]): TeamGameView[] {
-  return matches
-    .map((match) => {
-      const homeId = teamRefId(match.homeTeam);
-      const awayId = teamRefId(match.awayTeam);
-      const isHome = homeId === teamId;
-      const isAway = awayId === teamId;
+  const games: TeamGameView[] = [];
 
-      if (!isHome && !isAway) return null;
+  for (const match of matches) {
+    const homeId = teamRefId(match.homeTeam);
+    const awayId = teamRefId(match.awayTeam);
+    const isHome = homeId === teamId;
+    const isAway = awayId === teamId;
 
-      const opponent = isHome ? match.awayTeam : match.homeTeam;
-      const teamScore = isHome ? match.scoreHome ?? null : match.scoreAway ?? null;
-      const opponentScore = isHome ? match.scoreAway ?? null : match.scoreHome ?? null;
+    if (!isHome && !isAway) continue;
 
-      return {
-        match,
-        isHome,
-        opponentName: teamRefName(opponent),
-        opponentLogo: teamRefLogo(opponent),
-        teamScore,
-        opponentScore,
-      };
-    })
-    .filter((row): row is TeamGameView => row !== null)
-    .sort((a, b) => parseDateTime(b.match) - parseDateTime(a.match));
+    const opponent = isHome ? match.awayTeam : match.homeTeam;
+    const teamScore = isHome ? match.scoreHome ?? null : match.scoreAway ?? null;
+    const opponentScore = isHome ? match.scoreAway ?? null : match.scoreHome ?? null;
+
+    games.push({
+      match,
+      isHome,
+      opponentName: teamRefName(opponent),
+      opponentLogo: teamRefLogo(opponent),
+      teamScore,
+      opponentScore,
+    });
+  }
+
+  return games.sort((a, b) => parseDateTime(b.match) - parseDateTime(a.match));
 }
 
 function buildSummary(games: TeamGameView[]): TeamSummary {
