@@ -21,6 +21,14 @@ export default async function NewsPage() {
     // show empty state if API fails
   }
 
+  const sortedNews = [...news].sort((a, b) => {
+    const aTime = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bTime = b.createdAt ? Date.parse(b.createdAt) : 0;
+    const aMs = Number.isFinite(aTime) ? aTime : 0;
+    const bMs = Number.isFinite(bTime) ? bTime : 0;
+    return bMs - aMs; // newest first
+  });
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 bg-white">
       <h1 className="text-2xl font-semibold text-zinc-900 arial-caps">სიახლეები</h1>
@@ -29,7 +37,7 @@ export default async function NewsPage() {
         <p className="mt-4 text-zinc-600">სიახლეები ჯერ არ არის.</p>
       ) : (
         <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {news.map((item) => (
+          {sortedNews.map((item) => (
             <li key={item._id}>
               <Link href={`/news/${item._id}`} className="block h-full">
                 <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md">

@@ -176,7 +176,13 @@ export default async function TeamDetailPage({
             <div className="flex items-center gap-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-white/30 bg-white/10 sm:h-28 sm:w-28">
                 {team.logo ? (
-                  <Image src={team.logo} alt={team.name} fill className="object-cover" />
+                  <Image
+                    src={team.logo}
+                    alt={team.name}
+                    fill
+                    sizes="(max-width: 640px) 96px, 112px"
+                    className="object-cover"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white">
                     {team.name.slice(0, 2).toUpperCase()}

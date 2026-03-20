@@ -221,7 +221,7 @@ export default async function Home() {
                             <p className="arial-caps text-[11px] text-zinc-500 tabular-nums">
                               {formatDate(item.createdAt)}
                             </p>
-                            <h4 className="mt-0.5 text-sm font-semibold text-zinc-800 dejavu-sans truncate">
+                            <h4 className="mt-0.5 text-[12px] text-wrap font-semibold text-zinc-800 dejavu-sans">
                               {item.title}
                             </h4>
                           </div>

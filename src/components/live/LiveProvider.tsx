@@ -63,7 +63,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
 
     async function fetchStats(matchId: string): Promise<MatchStats | null> {
       try {
-        const res = await fetch(`${API_URL}/matches/${encodeURIComponent(matchId)}/stats`, {
+        const res = await fetch(`${API_URL}/matches/${encodeURIComponent(matchId)}/team-scores`, {
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
         });

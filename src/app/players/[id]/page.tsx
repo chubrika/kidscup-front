@@ -178,7 +178,7 @@ export default async function PlayerDetailPage({
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 p-6 sm:p-8">
+        {/* <div className="border-t border-zinc-200 p-6 sm:p-8">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 arial-caps">სტატისტიკა</h2>
             <span className="rounded-full bg-[#00306d]/10 px-3 py-1 text-xs font-semibold text-[#00306d]">
@@ -211,7 +211,7 @@ export default async function PlayerDetailPage({
               <p className="mt-2 text-2xl font-semibold text-zinc-900">{stats.fouls}</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </section>
     </div>
   );

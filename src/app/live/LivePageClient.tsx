@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLive } from "@/components/live/LiveProvider";
 import { toYouTubeEmbedUrl } from "@/lib/youtube";
-import { getPlayers, type Player } from "@/lib/api";
 import type { Match } from "@/lib/api";
 
 function teamName(team: unknown): string {
@@ -11,12 +10,6 @@ function teamName(team: unknown): string {
   if (typeof team === "string") return team;
   const anyTeam = team as { name?: unknown };
   return typeof anyTeam.name === "string" && anyTeam.name.trim() ? anyTeam.name : "TBD";
-}
-
-function playerDisplayName(p: Player): string {
-  const full = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
-  if (full) return `#${p.number} ${full}`;
-  return `#${p.number}`;
 }
 
 function teamId(team: Match["homeTeam"] | Match["awayTeam"] | null | undefined): string | null {
@@ -27,44 +20,9 @@ function teamId(team: Match["homeTeam"] | Match["awayTeam"] | null | undefined):
 
 export function LivePageClient() {
   const { isLive, liveUrl, liveMatch, liveStats } = useLive();
-  const [playersById, setPlayersById] = useState<Record<string, string>>({});
 
   const homeTeamId = teamId(liveMatch?.homeTeam);
   const awayTeamId = teamId(liveMatch?.awayTeam);
-
-  const sortedPlayerStats = useMemo(() => {
-    if (!liveStats) return [];
-    return [...liveStats.playerStats].sort(
-      (a, b) => b.points - a.points || String(a.playerId).localeCompare(String(b.playerId)),
-    );
-  }, [liveStats]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      if (!homeTeamId && !awayTeamId) {
-        setPlayersById({});
-        return;
-      }
-      try {
-        const [home, away] = await Promise.all([
-          homeTeamId ? getPlayers(homeTeamId) : Promise.resolve([]),
-          awayTeamId ? getPlayers(awayTeamId) : Promise.resolve([]),
-        ]);
-        if (cancelled) return;
-        const map: Record<string, string> = {};
-        for (const p of [...home, ...away]) map[p._id] = playerDisplayName(p);
-        setPlayersById(map);
-      } catch {
-        if (cancelled) return;
-        setPlayersById({});
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [homeTeamId, awayTeamId]);
 
   const embedUrl = useMemo(() => (isLive ? toYouTubeEmbedUrl(liveUrl) : null), [isLive, liveUrl]);
 
@@ -130,38 +88,25 @@ export function LivePageClient() {
       {liveStats ? (
         <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-5 py-4">
-            <p className="text-sm font-semibold text-zinc-900">Live სტატისტიკა</p>
+            <p className="text-sm font-semibold text-zinc-900">Live გუნდის ქულები</p>
             <p className="mt-1 text-xs text-zinc-500">მონაცემები ახლდება რეალურ დროში</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
-                <tr>
-                  <th className="px-5 py-3 text-left">მოთამაშე</th>
-                  <th className="px-3 py-3 text-right">ქულა</th>
-                  <th className="px-3 py-3 text-right">ასისტი</th>
-                  <th className="px-3 py-3 text-right">მოხსნა</th>
-                  <th className="px-3 py-3 text-right">ჩაჭრა</th>
-                  <th className="px-3 py-3 text-right">ბლოკი</th>
-                  <th className="px-3 py-3 text-right">ჯარიმა</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {sortedPlayerStats.map((p) => (
-                  <tr key={`${p.teamId}:${p.playerId}`}>
-                    <td className="px-5 py-3 font-medium text-zinc-900">
-                      {playersById[p.playerId] ?? p.playerId}
-                    </td>
-                    <td className="px-3 py-3 text-right">{p.points}</td>
-                    <td className="px-3 py-3 text-right">{p.assists}</td>
-                    <td className="px-3 py-3 text-right">{p.rebounds}</td>
-                    <td className="px-3 py-3 text-right">{p.steals}</td>
-                    <td className="px-3 py-3 text-right">{p.blocks}</td>
-                    <td className="px-3 py-3 text-right">{p.fouls}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  {teamName(liveMatch?.homeTeam)}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-zinc-900">{homeScore}</p>
+              </div>
+              <div className="h-px w-full bg-zinc-200 sm:hidden" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  {teamName(liveMatch?.awayTeam)}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-zinc-900">{awayScore}</p>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
