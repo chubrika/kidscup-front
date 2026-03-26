@@ -17,8 +17,11 @@ export type Team = {
   _id: string;
   name: string;
   logo?: string;
+  logoKey?: string;
   city?: string;
   coachName?: string;
+  assistantCoachName?: string;
+  doctor?: string;
   ageCategory?: { _id: string; name: string };
   createdAt?: string;
 };

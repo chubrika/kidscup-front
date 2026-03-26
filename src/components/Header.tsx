@@ -7,6 +7,7 @@ import type { Category } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 import Image from "next/image";
 import { LiveBadge } from "@/components/live/LiveBadge";
+import { PlusIcon } from "lucide-react";
 
 const MAIN_NAV = [
   { href: "/", label: "მთავარი" },
@@ -68,6 +69,13 @@ export function Header({ categories }: HeaderProps) {
             className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pt-[4px] pb-[4px]"
           >
             <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" />
+          </Link>
+
+          <Link href="/register-team" className="text-white dejavu-sans text-sm rounded-md px-2 py-1 border-2 transition-colors border-white/20 hover:text-white hover:border-[#fd7209]">
+            <span className="flex items-center justify-center">
+              <PlusIcon className="h-4 w-4 mr-1" />
+              გუნდის რეგისტრაცია
+            </span>
           </Link>
         </div>
         <nav className="hidden items-center h-full gap-6 text-md font-medium text-white arial-caps md:flex">
