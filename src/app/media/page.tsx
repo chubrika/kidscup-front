@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const TABS = [
   { key: "photo", label: "ფოტო" },
@@ -9,6 +10,14 @@ const TABS = [
 ] as const;
 
 export default function MediaPage() {
+  return (
+    <Suspense fallback={<MediaPageSkeleton />}>
+      <MediaPageInner />
+    </Suspense>
+  );
+}
+
+function MediaPageInner() {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") === "video" ? "video" : "photo";
 
@@ -44,6 +53,21 @@ export default function MediaPage() {
           ) : (
             <p className="text-sm text-zinc-600">ვიდეო კონტენტი აქ გამოჩნდება.</p>
           )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MediaPageSkeleton() {
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
+        <div className="border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-4 py-3">
+          <h1 className="arial-caps text-sm font-semibold tracking-wide text-zinc-800">მედია</h1>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-zinc-600">იტვირთება...</p>
         </div>
       </section>
     </div>
