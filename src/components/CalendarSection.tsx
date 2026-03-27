@@ -4,13 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { Category, Match } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 type CalendarSectionProps = {
   categories: Category[];
 };
 
-type GroupByDate = { dateKey: string; dateLabel: string; matches: Match[] };
+function getTeamName(team: Match["homeTeam"]): string {
+  if (!team) return "—";
+  if (typeof team === "string") return team;
+  return team.name ?? "—";
+}
 
 const GEORGIAN_MONTHS = [
   "იანვარი", "თებერვალი", "მარტი", "აპრილი", "მაისი", "ივნისი",
@@ -21,60 +25,46 @@ const GEORGIAN_WEEKDAYS = [
   "კვირა", "ორშაბათი", "სამშაბათი", "ოთხშაბათი", "ხუთშაბათი", "პარასკევი", "შაბათი",
 ];
 
-function getTeamName(team: Match["homeTeam"]): string {
-  if (!team) return "—";
-  if (typeof team === "string") return team;
-  return team.name ?? "—";
-}
-
-function formatDateGeorgian(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return dateStr;
-  const day = d.getDate();
-  const month = GEORGIAN_MONTHS[d.getMonth()] ?? "";
-  const weekday = GEORGIAN_WEEKDAYS[d.getDay()] ?? "";
+function formatUpcomingDateLabel(isoDateKey: string): string {
+  const d = new Date(isoDateKey);
+  if (Number.isNaN(d.getTime())) return isoDateKey;
+  // Use UTC getters so SSR and client render the same label.
+  const day = d.getUTCDate();
+  const month = GEORGIAN_MONTHS[d.getUTCMonth()] ?? "";
+  const weekday = GEORGIAN_WEEKDAYS[d.getUTCDay()] ?? "";
   return `${day} ${month}, ${weekday}`;
 }
 
-function formatTime(match: Match): string {
-  if (match.time) return match.time.slice(0, 5);
-  const d = new Date(match.date);
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleTimeString("ka-GE", { hour: "2-digit", minute: "2-digit" });
-  }
-  return "—";
+function formatUpcomingTimeLabel(match: Match): string {
+  // Avoid locale/timezone differences between SSR and client hydration.
+  // Prefer explicit HH:MM from the API; otherwise render a stable placeholder.
+  const hhmm = match.time?.slice(0, 5);
+  return hhmm && /^\d{2}:\d{2}$/.test(hhmm) ? hhmm : "—";
 }
 
-function groupMatchesByDate(matches: Match[], formatDateFn: (s: string) => string): GroupByDate[] {
-  const byDate = new Map<string, Match[]>();
-  for (const m of matches) {
-    const d = new Date(m.date);
-    const key = Number.isNaN(d.getTime()) ? m.date : d.toISOString().slice(0, 10);
-    const list = byDate.get(key) ?? [];
-    list.push(m);
-    byDate.set(key, list);
-  }
-  return Array.from(byDate.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([dateKey, list]) => ({
-      dateKey,
-      dateLabel: formatDateFn(dateKey),
-      matches: [...list].sort((a, b) => formatTime(a).localeCompare(formatTime(b))),
-    }));
+function matchDateTimeMs(match: Match): number {
+  const d = new Date(match.date);
+  const base = Number.isNaN(d.getTime()) ? 0 : d.getTime();
+  const hhmm = match.time?.slice(0, 5) ?? "00:00";
+  const [hh, mm] = hhmm.split(":").map((v) => Number(v));
+  const extra = Number.isFinite(hh) && Number.isFinite(mm) ? (hh * 60 + mm) * 60_000 : 0;
+  return base + extra;
 }
 
 export function CalendarSection({ categories }: CalendarSectionProps) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    categories[0]?._id ?? null
+  );
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const categoryId = categories[0]?._id ?? null;
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
     const search = new URLSearchParams();
-    search.set("status", "scheduled");
-    if (categoryId) search.set("ageCategory", categoryId);
+    search.set("status", "finished");
+    if (selectedCategoryId) search.set("ageCategory", selectedCategoryId);
     const url = `${API_URL}/matches?${search.toString()}`;
 
     fetch(url, { signal: controller.signal })
@@ -96,68 +86,111 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
       cancelled = true;
       controller.abort();
     };
-  }, [categoryId]);
+  }, [selectedCategoryId]);
 
-  const groupedByDate = useMemo(
-    () => groupMatchesByDate(matches, formatDateGeorgian),
+  const lastThree = useMemo(
+    () => [...matches].sort((a, b) => matchDateTimeMs(b) - matchDateTimeMs(a)).slice(0, 3),
     [matches]
   );
 
   return (
-    <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
-      <div className="border-b border-zinc-200 bg-zinc-50 px-3 py-2">
-        <h2 className="text-sm font-semibold text-zinc-900 arial-caps">
-          კალენდარი
+    <section>
+   <div className="flex justify-between items-center">
+   <div className="flex items-center gap-3">
+        <span className="inline-flex h-8 w-8 items-center justify-center">
+          <CalendarDays className="h-7 w-7 text-[#9d4300]" />
+        </span>
+        <h2 className="text-2xl font-semibold tracking-tight text-[#00112d] dejavu-sans">
+          დაგეგმილი თამაშები
         </h2>
       </div>
-      <div className="overflow-x-auto">
-        {error && (
-          <p className="px-3 py-2 text-[11px] text-red-600">{error}</p>
+
+      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="კატეგორიის ფილტრი">
+        {categories.map((cat) => {
+          const selected = selectedCategoryId === cat._id;
+          return (
+            <button
+              key={cat._id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setSelectedCategoryId(cat._id)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium arial-caps transition-colors ${
+                selected
+                  ? "border-[#00112d] bg-[#00112d] text-white"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              {cat.name}
+            </button>
+          );
+        })}
+      </div>
+   </div>
+
+      <div className="mt-5 flex flex-col gap-4">
+        {error && <p className="px-1 text-sm text-red-600">{error}</p>}
+        {loading && <p className="px-1 text-sm text-zinc-500">იტვირთება...</p>}
+        {!loading && !error && lastThree.length === 0 && (
+          <p className="px-1 text-sm text-zinc-500">დასრულებული მატჩები არ არის</p>
         )}
-        {loading && (
-          <p className="px-3 py-2 text-[11px] text-zinc-500">იტვირთება...</p>
-        )}
-        {!loading && !error && groupedByDate.length === 0 && (
-          <p className="px-3 py-2 text-[11px] text-zinc-500">
-            დაგეგმილი მატჩები არ არის
-          </p>
-        )}
-        {!loading && !error && groupedByDate.length > 0 && (
-          <div className="pb-2">
-            {groupedByDate.map((group) => (
-              <div key={group.dateKey} className="pt-3 first:pt-2">
-                <div className="flex justify-center mb-2">
-                  <span className="inline-flex items-center px-3 py-1 text-[12px] text-zinc-500 tracking-wide dejavu-sans">
-                    {group.dateLabel}
-                  </span>
+
+        {!loading &&
+          !error &&
+          lastThree.map((m) => {
+            const dateKey = (() => {
+              const d = new Date(m.date);
+              return Number.isNaN(d.getTime()) ? m.date : d.toISOString().slice(0, 10);
+            })();
+            const timeLabel = formatUpcomingTimeLabel(m);
+
+            return (
+              <div
+                key={m._id}
+                className="rounded-2xl border border-zinc-200 bg-white px-5 py-5 shadow-sm"
+              >
+                <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[220px_1fr_170px]">
+                  <div className="min-w-0">
+                    <p className="arial-caps text-[11px] font-semibold tracking-widest text-[#9d4300]">
+                      {formatUpcomingDateLabel(dateKey)}
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight text-[#00112d]">
+                      {timeLabel}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-6">
+                    <div className="min-w-0 text-center">
+                      <p className="text-lg font-semibold text-[#00112d] dejavu-sans truncate">
+                        {getTeamName(m.homeTeam)}
+                      </p>
+                      <p className="mt-1 arial-caps text-[11px] tracking-widest text-zinc-400">HOME</p>
+                    </div>
+
+                    <div className="flex h-8 w-12 items-center justify-center rounded-full bg-zinc-200 text-[12px] font-semibold text-zinc-600">
+                      VS
+                    </div>
+
+                    <div className="min-w-0 text-center">
+                      <p className="text-lg font-semibold text-[#00112d] dejavu-sans truncate">
+                        {getTeamName(m.awayTeam)}
+                      </p>
+                      <p className="mt-1 arial-caps text-[11px] tracking-widest text-zinc-400">AWAY</p>
+                    </div>
+                  </div>
+
                 </div>
-                <ul className="divide-y divide-zinc-200 border-t border-b border-zinc-200">
-                  {group.matches.map((m) => (
-                    <li
-                      key={m._id}
-                      className="px-3 py-1.5 hover:bg-zinc-50/80 arial-caps text-[11px]"
-                    >
-                      <div className="flex items-center  justify-between gap-2">
-                        <span className="font-medium text-sm truncate min-w-0 text-left text-[#00306d]">
-                          {getTeamName(m.homeTeam)}
-                        </span>
-                        <span className="flex-shrink-0 bg-[#e16d15] text-sm items-center justify-center  rounded-full border border-zinc-200 px-2 py-1 text-[11px] text-white tracking-wide font-inherit">
-                          {formatTime(m)}
-                        </span>
-                        <span className="font-medium text-sm truncate min-w-0 text-right text-[#00306d]">
-                          {getTeamName(m.awayTeam)}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
               </div>
-            ))}
-            <Link href="/calendar" className="flex justify-center items-center w-full pt-2">
-              <span className="inline-flex  items-center px-3 py-1 text-[12px] text-[#00306d] tracking-wide arial-caps"> 
-                სრული კალენდარი
-              </span>
-              <ArrowRightIcon className="w-3.5 h-3.5 text-[#00306d]" />
+            );
+          })}
+
+        {!loading && (
+          <div className="px-1 pt-1">
+            <Link
+              href="/calendar"
+              className="inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+            >
+              სრული კალენდარი
             </Link>
           </div>
         )}

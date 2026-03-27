@@ -111,6 +111,7 @@ export default function PlayersListClient({ players }: { players: Player[] }) {
                 width={120}
                 height={120}
                 className="h-full w-full object-cover ring-1 ring-zinc-200"
+                unoptimized
               />
             </div>
           </div>

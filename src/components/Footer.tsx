@@ -41,7 +41,7 @@ function SocialLink({
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
       aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#002554] transition-colors hover:border-[#fd7209] hover:bg-[#fd7209]/10 hover:text-[#fd7209] focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white/5 text-white/80 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2 focus:ring-offset-[#071027]"
     >
       {icon}
     </a>
@@ -52,24 +52,24 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-t-[3px] border-[#fd7209] bg-gradient-to-b from-zinc-50 to-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <footer className="border-t border-t-[3px] border-[#fd7209] bg-[#071027] text-white">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
           <div className="space-y-4">
             <Link
               href="/"
-              className="text-lg font-bold tracking-tight text-zinc-900"
+              className="text-lg font-bold tracking-tight text-white"
             >
               Tbilisi Kids Cup
             </Link>
 
-            <p className="text-sm leading-6 text-zinc-600 dejavu-sans">
+            <p className="text-sm leading-6 text-white/70 dejavu-sans">
               Kids Cup არის ბავშვთა სპორტული პლატფორმა — შედეგები, ცხრილები,
               კალენდარი, სიახლეები და მედია ერთ სივრცეში.
             </p>
 
             <div>
-              <p className="arial-caps text-[11px] font-semibold tracking-wide text-zinc-500">
+              <p className="arial-caps text-[11px] font-semibold tracking-wide text-[#fd7209]">
                 სოციალური ქსელები
               </p>
               <div className="mt-3 flex items-center gap-3">
@@ -93,7 +93,7 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="arial-caps text-[11px] font-semibold tracking-wide text-zinc-500">
+            <p className="arial-caps text-[11px] font-semibold tracking-wide text-[#fd7209]">
               მთავარი
             </p>
             <ul className="mt-4 dejavu-sans grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-1 sm:gap-x-0">
@@ -101,7 +101,7 @@ export function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="transition-colors text-zinc-600 hover:text-zinc-900"
+                    className="transition-colors text-white/70 hover:text-white"
                   >
                     {label}
                   </Link>
@@ -111,7 +111,7 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="arial-caps text-[11px] font-semibold tracking-wide text-zinc-500">
+            <p className="arial-caps text-[11px] font-semibold tracking-wide text-[#fd7209]">
               ნავიგაცია
             </p>
             <ul className="mt-4 dejavu-sans grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-1 sm:gap-x-0">
@@ -119,7 +119,7 @@ export function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="transition-colors text-zinc-600 hover:text-zinc-900"
+                    className="transition-colors text-white/70 hover:text-white"
                   >
                     {label}
                   </Link>
@@ -129,31 +129,31 @@ export function Footer() {
           </div>
 
           <div className="space-y-4">
-            <p className="arial-caps text-[11px] font-semibold tracking-wide text-zinc-500">
+            <p className="arial-caps text-[11px] font-semibold tracking-wide text-[#fd7209]">
               კონტაქტი
             </p>
 
             <div className="space-y-3 text-sm">
               <a
                 href={`tel:${CONTACT.phoneHref}`}
-                className="flex items-center gap-3 rounded-md text-zinc-700 transition-colors hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2"
+                className="flex items-center gap-3 rounded-md text-white/70 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2 focus:ring-offset-[#071027]"
               >
-                <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#002554]/5 text-[#002554]">
+                <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/5 text-white ring-1 ring-white/10">
                   <Phone className="h-4 w-4" />
                 </span>
-                <span className="dejavu-sans font-semibold text-zinc-900">
+                <span className="dejavu-sans font-semibold text-white">
                   {CONTACT.phoneDisplay}
                 </span>
               </a>
 
               <a
                 href={`mailto:${CONTACT.emailHref}`}
-                className="flex items-center gap-3 rounded-md text-zinc-700 transition-colors hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2"
+                className="flex items-center gap-3 rounded-md text-white/70 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-[#fd7209] focus:ring-offset-2 focus:ring-offset-[#071027]"
               >
-                <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#002554]/5 text-[#002554]">
+                <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/5 text-white ring-1 ring-white/10">
                   <Mail className="h-4 w-4" />
                 </span>
-                <span className="dejavu-sans font-semibold text-zinc-900">
+                <span className="dejavu-sans font-semibold text-white">
                   {CONTACT.emailDisplay}
                 </span>
               </a>
@@ -161,8 +161,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-zinc-200 pt-6">
-          <p className="text-sm text-zinc-600 dejavu-sans">
+        <div className="mt-12 border-t border-white/10 pt-6">
+          <p className="text-sm text-white/60 dejavu-sans">
             © {currentYear} TbilisiKids Cup. ყველა უფლება დაცულია.
           </p>
         </div>

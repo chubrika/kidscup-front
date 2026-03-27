@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import type { Category, StandingRow } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import type { StandingsGroup } from "@/lib/api";
-import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 
 type StandingsSectionProps = {
@@ -56,9 +55,13 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
   }, [selectedCategoryId]);
 
   return (
-    <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
-      <div className="border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-3 py-2">
-        <div className="flex flex-wrap justify-center gap-1.5" role="tablist" aria-label="კატეგორიის ფილტრი">
+    <section className="rounded-xl border border-zinc-200 bg-[#00112d] shadow-lg overflow-hidden">
+      <div className="px-3 pt-3">
+        <h2 className="text-md text-white dejavu-sans">ცხრილი</h2>
+      </div>
+      <div className="border-b border-white/10
+       px-3 py-2">
+        <div className="flex flex-wrap justify-start gap-4" role="tablist" aria-label="კატეგორიის ფილტრი">
           {categories.map((cat) => (
             <button
               key={cat._id}
@@ -66,13 +69,16 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
               role="tab"
               aria-selected={selectedCategoryId === cat._id}
               onClick={() => setSelectedCategoryId(cat._id)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 arial-caps ${
+              className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${
                 selectedCategoryId === cat._id
-                  ? "bg-[#00306d] text-white shadow-sm"
-                  : "bg-white border border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                  ? "text-white"
+                  : "text-white/60 hover:text-white/80"
               }`}
             >
               {cat.name}
+              {selectedCategoryId === cat._id && (
+                <span className="absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-[#fd7209]" />
+              )}
             </button>
           ))}
         </div>
@@ -96,14 +102,14 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
                       {group.categoryName}
                     </h3>
                   )}
-                  <table className="w-full arial-caps text-xs">
+                  <table className="w-full dejavu-sans text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-200 bg-zinc-50/60 text-zinc-600">
-                        <th className="w-6 py-1.5 pl-3 text-center font-semibold">#</th>
-                        <th className="min-w-0 py-1.5 pl-1.5 text-left font-semibold">გუნდი</th>
-                        <th className="w-7 py-1.5 text-center font-semibold">თ</th>
-                        <th className="w-7 py-1.5 text-center font-semibold">ს</th>
-                        <th className="w-8 py-1.5 pr-3 text-center font-semibold text-[#00306d]">ქ</th>
+                      <tr className="border-b border-white/10  text-white">
+                        <th className="w-6 py-3 pl-3 text-center font-normal">#</th>
+                        <th className="min-w-0 py-3 pl-1.5 text-left font-normal">გუნდი</th>
+                        <th className="w-7 py-3 text-center font-normal">თ</th>
+                        <th className="w-7 py-3 text-center font-normal">ს</th>
+                        <th className="w-8 py-3 pr-3 text-center font-normal">ქ</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -117,17 +123,23 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
                         group.standings.map((row, index) => (
                           <tr
                             key={normalizeTeamId(row.teamId)}
-                            className="border-b border-zinc-200 hover:bg-amber-100/30 transition-colors"
+                            className="border-b border-white/10 hover:bg-white/5 transition-colors"
                           >
-                            <td className="py-1.5 pl-3 text-center text-zinc-500 font-medium tabular-nums">
+                            <td
+                              className={`py-3 pl-3 text-center font-medium italic arial-caps tabular-nums ${
+                                index === 0 ? "text-[#fd7209]" : "text-white/40"
+                              }`}
+                            >
                               {index + 1}
                             </td>
-                            <td className="py-1.5 pl-1.5 font-medium text-zinc-800 truncate max-w-[140px]">
+                            <td className="py-3 pl-1.5 font-medium text-white truncate max-w-[140px]">
                               {row.teamName}
                             </td>
-                            <td className="py-1.5 text-center text-zinc-600 tabular-nums">{row.played}</td>
-                            <td className="py-1.5 text-center text-zinc-600 tabular-nums">{row.pointsDiff}</td>
-                            <td className="py-1.5 pr-3 text-center font-semibold text-[#fd7209] tabular-nums">
+                            <td className="py-3 text-center text-white/40 tabular-nums">{row.played}</td>
+                            <td className="py-3 text-center text-white/40 tabular-nums">{row.pointsDiff}</td>
+                            <td className={`py-3 pr-3 text-center font-semibold tabular-nums ${
+                                index === 0 ? "text-[#fd7209]" : "text-white"
+                              }`}>
                               {row.points}
                             </td>
                           </tr>
@@ -135,13 +147,12 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
                       )}
                     </tbody>
                   </table>
-                  <div className="px-3 py-1.5 flex justify-center border-t border-zinc-100">
+                  <div className="px-3 py-3 flex justify-center border-t border-white/10">
                     <Link
-                      href="/standings"
-                      className="inline-flex arial-caps items-center gap-1 text-[11px] font-medium text-[#00306d] hover:text-[#002050] transition-colors"
+                      href="/league"
+                      className="px-4 py-2 text-white text-center bg-white/10 py-1 rounded-lg font-label text-[12px] font-normal hover:bg-white/20 transition-colors arial-caps tracking-widest"
                     >
                       სრული ცხრილი
-                      <ArrowRightIcon className="h-3 w-3" />
                     </Link>
                   </div>
                 </div>
@@ -153,3 +164,4 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
     </section>
   );
 }
+ 

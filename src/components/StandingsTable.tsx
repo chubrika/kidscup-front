@@ -17,6 +17,7 @@ type StandingsTableProps = {
   categories: Category[];
   selectedCategoryId?: string | null;
   onCategoryChange?: Dispatch<SetStateAction<string | null>>;
+  seasonId?: string | null;
 };
 
 type EnrichedRow = StandingRow & {
@@ -25,21 +26,27 @@ type EnrichedRow = StandingRow & {
   coachName?: string;
 };
 
-function buildCategoryQuery(categoryId: string | null, basePath: string): string {
+function buildCategoryQuery(categoryId: string | null, basePath: string, seasonId?: string | null): string {
   if (!categoryId) return `${API_URL}${basePath}`;
-  const encoded = encodeURIComponent(categoryId);
-  return `${API_URL}${basePath}?ageCategory=${encoded}`;
+  const search = new URLSearchParams();
+  search.set("ageCategory", categoryId);
+  if (seasonId) {
+    // Standings/matches use seasonId; teams API expects season.
+    if (basePath === "/teams") search.set("season", seasonId);
+    else search.set("seasonId", seasonId);
+  }
+  return `${API_URL}${basePath}?${search.toString()}`;
 }
 
-async function fetchStandings(categoryId: string | null): Promise<StandingsGroup[]> {
-  const url = buildCategoryQuery(categoryId, "/standings");
+async function fetchStandings(categoryId: string | null, seasonId?: string | null): Promise<StandingsGroup[]> {
+  const url = buildCategoryQuery(categoryId, "/standings", seasonId);
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch standings");
   return res.json();
 }
 
-async function fetchTeams(categoryId: string | null): Promise<Team[]> {
-  const url = buildCategoryQuery(categoryId, "/teams");
+async function fetchTeams(categoryId: string | null, seasonId?: string | null): Promise<Team[]> {
+  const url = buildCategoryQuery(categoryId, "/teams", seasonId);
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch teams");
   return res.json();
@@ -77,6 +84,7 @@ export function StandingsTable({
   categories,
   selectedCategoryId: controlledCategoryId,
   onCategoryChange,
+  seasonId,
 }: StandingsTableProps) {
   const [internalCategoryId, setInternalCategoryId] = useState<string | null>(
     categories[0]?._id ?? null
@@ -104,8 +112,8 @@ export function StandingsTable({
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchStandings(selectedCategoryId),
-      fetchTeams(selectedCategoryId),
+      fetchStandings(selectedCategoryId, seasonId),
+      fetchTeams(selectedCategoryId, seasonId),
     ])
       .then(([s, t]) => {
         if (!cancelled) {
@@ -123,7 +131,7 @@ export function StandingsTable({
     return () => {
       cancelled = true;
     };
-  }, [selectedCategoryId]);
+  }, [selectedCategoryId, seasonId]);
 
   const allRows: EnrichedRow[] = standingsGroups.flatMap((g) =>
     enrichStandings(g.standings, teams)
