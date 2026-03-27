@@ -68,7 +68,7 @@ export function Header({ categories }: HeaderProps) {
             href="/"
             className="text-xl font-bold tracking-tight text-white flex items-center justify-center h-[60px] pt-[4px] pb-[4px]"
           >
-            <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" />
+            <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" unoptimized />
           </Link>
 
           <Link href="/register-team" className="text-white dejavu-sans text-sm rounded-md px-2 py-1 border-2 transition-colors border-white/20 hover:text-white hover:border-[#fd7209]">

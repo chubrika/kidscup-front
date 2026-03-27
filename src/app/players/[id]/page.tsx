@@ -137,7 +137,7 @@ export default async function PlayerDetailPage({
             <div className="flex items-center gap-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-white/30 bg-white/10 sm:h-28 sm:w-28">
                 {player.photo ? (
-                  <Image src={player.photo} alt={playerName} className="h-full w-full object-cover" />
+                  <Image src={player.photo} alt={playerName} className="h-full w-full object-cover" unoptimized />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-3xl font-semibold text-white">
                     {initials(player)}

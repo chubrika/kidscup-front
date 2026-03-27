@@ -82,7 +82,7 @@ export default function TeamFilter({ teams, selectedTeamId }: Props) {
               onClick={() => selectTeam(o.value)}
               className="cursor-pointer flex items-center gap-2 arial-caps px-4 py-2 text-sm hover:bg-zinc-100"
             >
-              {o.logo && <Image src={o.logo} alt={o.label} width={20} height={20} className="rounded-full" />}
+              {o.logo && <Image src={o.logo} alt={o.label} width={20} height={20} className="rounded-full" unoptimized />}
               <span className="text-md font-medium">{o.label}</span>
             </div>
           ))}

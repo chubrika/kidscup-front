@@ -44,6 +44,7 @@ export default async function TeamsPage() {
                         width={56}
                         height={56}
                         className="h-full w-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="arial-caps text-lg font-semibold text-white">

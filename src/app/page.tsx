@@ -109,6 +109,7 @@ export default async function Home() {
                               width={28}
                               height={28}
                               className="h-7 w-7 rounded bg-zinc-100 object-cover"
+                              unoptimized
                             />
                           ) : (
                             <div className="h-7 w-7 rounded bg-zinc-100" />
@@ -131,6 +132,7 @@ export default async function Home() {
                               width={28}
                               height={28}
                               className="h-7 w-7 rounded bg-zinc-100 object-cover"
+                              unoptimized
                             />
                           ) : (
                             <div className="h-7 w-7 rounded bg-zinc-100" />
@@ -176,6 +178,7 @@ export default async function Home() {
                               className="object-cover"
                               sizes="(min-width: 1024px) 560px, 100vw"
                               priority={idx === 0}
+                              unoptimized
                             />
                           ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-[#00306d] to-[#fd7209]/80" />
@@ -212,6 +215,7 @@ export default async function Home() {
                                 fill
                                 className="object-cover"
                                 sizes="80px"
+                                unoptimized
                               />
                             ) : (
                               <div className="absolute inset-0 bg-gradient-to-br from-[#00306d] to-[#fd7209]/80" />

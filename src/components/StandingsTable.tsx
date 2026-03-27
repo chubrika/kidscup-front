@@ -208,6 +208,7 @@ export function StandingsTable({
                                 fill
                                 className="object-cover transition-transform duration-200 ease-out group-hover:scale-110"
                                 sizes="36px"
+                                unoptimized
                               />
                             ) : (
                               <span className="flex h-full w-full items-center justify-center text-xs font-medium text-zinc-500">

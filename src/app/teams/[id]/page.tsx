@@ -182,6 +182,7 @@ export default async function TeamDetailPage({
                     fill
                     sizes="(max-width: 640px) 96px, 112px"
                     className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white">
@@ -300,6 +301,7 @@ export default async function TeamDetailPage({
                                   width={28}
                                   height={28}
                                   className="h-7 w-7 rounded bg-zinc-100 object-cover"
+                                  unoptimized
                                 />
                               ) : (
                                 <div className="h-7 w-7 rounded bg-zinc-100" />

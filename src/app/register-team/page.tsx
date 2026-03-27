@@ -487,8 +487,8 @@ export default function RegisterTeamPage() {
                 alt="Team logo preview"
                 width={80}
                 height={80}
-                unoptimized
                 className="mt-2 h-20 w-20 rounded-md border border-zinc-200 object-cover"
+                unoptimized
               />
             )}
           </label>
