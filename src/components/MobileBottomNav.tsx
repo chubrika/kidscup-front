@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Trophy, Users, UserRound } from "lucide-react";
+import { CalendarDays, Home, Trophy, Users, Mail } from "lucide-react";
 
 const MOBILE_SUB_NAV = [
   { href: "/", label: "მთავარი", icon: Home },
   { href: "/teams", label: "გუნდები", icon: Users },
-  { href: "/players", label: "მოთამაშეები", icon: UserRound },
-  { href: "/standings", label: "ცხრილი", icon: Trophy },
+  { href: "/league", label: "ჩემპიონატები", icon: Trophy },
   { href: "/calendar", label: "კალენდარი", icon: CalendarDays },
+  { href: "/contact", label: "კონტაქტი", icon: Mail },
 ] as const;
 
 export function MobileBottomNav() {

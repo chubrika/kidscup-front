@@ -13,8 +13,8 @@ const MAIN_NAV = [
   { href: "/news", label: "სიახლეები" },
   { href: "/media", label: "მედია" },
   { href: "/teams", label: "კლუბები" },
-  { href: "/players", label: "მოთამაშეები" },
   { href: "/league", label: "ჩემპიონატები" },
+  { href: "/contact", label: "კონტაქტი" }
 ] as const;
 
 const MOBILE_NAV = [

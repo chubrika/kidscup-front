@@ -2,7 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getMatches, getPlayers, getTeamById, type Match, type MatchStatus } from "@/lib/api";
+import {
+  getMatches,
+  getPlayers,
+  getTeamById,
+  type Match,
+  type MatchStatus,
+  type Player,
+} from "@/lib/api";
 
 type PageParams = { id: string };
 
@@ -13,8 +20,6 @@ const STATUS_LABELS: Record<MatchStatus, string> = {
   postponed: "გადადებული",
   cancelled: "გაუქმებული",
 };
-
-const STATUS_ORDER: MatchStatus[] = ["live", "scheduled", "finished", "postponed", "cancelled"];
 
 type TeamGameView = {
   match: Match;
@@ -33,6 +38,10 @@ type TeamSummary = {
   pointsFor: number;
   pointsAgainst: number;
 };
+
+function cn(...values: Array<string | false | null | undefined>): string {
+  return values.filter(Boolean).join(" ");
+}
 
 function teamRefId(team: Match["homeTeam"]): string | null {
   if (!team) return null;
@@ -64,7 +73,6 @@ function formatDate(dateString: string): string {
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "-";
   return new Intl.DateTimeFormat("ka-GE", {
-    year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(d);
@@ -87,8 +95,12 @@ function buildTeamGames(teamId: string, matches: Match[]): TeamGameView[] {
     if (!isHome && !isAway) continue;
 
     const opponent = isHome ? match.awayTeam : match.homeTeam;
-    const teamScore = isHome ? match.scoreHome ?? null : match.scoreAway ?? null;
-    const opponentScore = isHome ? match.scoreAway ?? null : match.scoreHome ?? null;
+    const teamScore = isHome
+      ? (match.scoreHome ?? null)
+      : (match.scoreAway ?? null);
+    const opponentScore = isHome
+      ? (match.scoreAway ?? null)
+      : (match.scoreHome ?? null);
 
     games.push({
       match,
@@ -132,6 +144,181 @@ function average(value: number, total: number): string {
   return (value / total).toFixed(1);
 }
 
+function statusPillClasses(status: MatchStatus): string {
+  switch (status) {
+    case "live":
+      return "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-600/20";
+    case "scheduled":
+      return "bg-sky-500/15 text-sky-700 ring-1 ring-sky-600/20";
+    case "finished":
+      return "bg-zinc-500/10 text-zinc-700 ring-1 ring-zinc-600/15";
+    case "postponed":
+      return "bg-amber-500/15 text-amber-800 ring-1 ring-amber-600/20";
+    case "cancelled":
+      return "bg-rose-500/15 text-rose-700 ring-1 ring-rose-600/20";
+    default:
+      return "bg-zinc-500/10 text-zinc-700 ring-1 ring-zinc-600/15";
+  }
+}
+
+function StatCard({
+  label,
+  value,
+  subValue,
+  className,
+}: {
+  label: string;
+  value: string | number;
+  subValue?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("p-4", className)}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold text-white tabular-nums">
+        {value}
+      </p>
+      {subValue ? (
+        <p className="mt-1 text-xs text-white/50 dejavu-sans">{subValue}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function EmptyCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-5">
+      <p className="text-sm font-semibold text-zinc-900">{title}</p>
+      <p className="mt-1 text-sm text-zinc-600 dejavu-sans">{description}</p>
+    </div>
+  );
+}
+
+type RosterGroupKey = "PG" | "SG" | "SF" | "PF" | "C" | "OTHER";
+
+const POSITION_LABELS: Record<Exclude<RosterGroupKey, "OTHER">, string> = {
+  PG: "გამთამაშებელი",
+  SG: "მსროლელი",
+  SF: "მსუბუქი ფორვარდი",
+  PF: "მძიმე ფორვარდი",
+  C: "ცენტრი",
+};
+
+const POSITION_COLORS: Record<Exclude<RosterGroupKey, "OTHER">, string> = {
+  PG: "#3b82f6",
+  SG: "#22c55e",
+  SF: "#a855f7",
+  PF: "#f97316",
+  C: "#ef4444",
+};
+
+const ROSTER_GROUPS: Array<{
+  key: RosterGroupKey;
+  title: string;
+  color?: string;
+}> = [
+  { key: "PG", title: POSITION_LABELS.PG, color: POSITION_COLORS.PG },
+  { key: "SG", title: POSITION_LABELS.SG, color: POSITION_COLORS.SG },
+  { key: "SF", title: POSITION_LABELS.SF, color: POSITION_COLORS.SF },
+  { key: "PF", title: POSITION_LABELS.PF, color: POSITION_COLORS.PF },
+  { key: "C", title: POSITION_LABELS.C, color: POSITION_COLORS.C },
+  { key: "OTHER", title: "სხვა" },
+];
+
+function normalizePos(pos?: string | null): string {
+  return (pos ?? "").trim().toUpperCase();
+}
+
+function formatPosition(pos?: string | null): string {
+  const p = normalizePos(pos);
+  if (!p) return "—";
+  return (POSITION_LABELS as Record<string, string>)[p] ?? p;
+}
+
+function positionBorderColor(pos?: string | null): string | undefined {
+  const p = normalizePos(pos);
+  return (POSITION_COLORS as Record<string, string>)[p] ?? undefined;
+}
+
+function rosterGroupForPosition(pos?: string | null): RosterGroupKey {
+  const p = normalizePos(pos);
+  if (!p) return "OTHER";
+  if (p in POSITION_LABELS) return p as Exclude<RosterGroupKey, "OTHER">;
+  return "OTHER";
+}
+
+function PlayerAvatar({ player }: { player: Player }) {
+  if (player.photo) {
+    return (
+      <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-zinc-100 sm:h-14 sm:w-14">
+        <Image
+          src={player.photo}
+          alt={`${player.firstName} ${player.lastName}`}
+          fill
+          className="object-cover"
+          unoptimized
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 sm:h-14 sm:w-14"
+      aria-hidden="true"
+    >
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="opacity-80"
+      >
+        <path
+          d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2.25c-4.14 0-7.5 2.52-7.5 5.625A1.875 1.875 0 0 0 6.375 21h11.25A1.875 1.875 0 0 0 19.5 19.875C19.5 16.77 16.14 14.25 12 14.25Z"
+          fill="currentColor"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function PlayerCard({ player }: { player: Player }) {
+  const pos = formatPosition(player.position);
+  return (
+    <Link
+      href={`/players/${player._id}`}
+      className="group flex items-center gap-3 rounded-2xl  bg-white p-3 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50"
+    >
+      <div className="relative">
+        <PlayerAvatar player={player} />
+        <span className="absolute -bottom-1 -right-1 inline-flex h-7 min-w-7 items-center justify-center rounded-lg bg-[#0b1b36] px-2 text-xs font-semibold text-white shadow-sm tabular-nums ring-2 ring-white">
+          {player.number ?? "—"}
+        </span>
+      </div>
+
+      <div className="min-w-0">
+        <p className="truncate dejavu-sans text-sm font-semibold text-zinc-900 group-hover:text-zinc-950">
+          {player.firstName} {player.lastName}
+        </p>
+        <p
+          className="mt-0.5 text-xs text-[#00306d] font-semibold dejavu-sans"
+        >
+          {pos}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -154,175 +341,372 @@ export default async function TeamDetailPage({
 }) {
   const { id } = await params;
 
-  const [team, players, matches] = await Promise.all([getTeamById(id), getPlayers(id), getMatches()]);
+  const [team, players, matches] = await Promise.all([
+    getTeamById(id),
+    getPlayers(id),
+    getMatches(),
+  ]);
 
   if (!team) notFound();
 
   const games = buildTeamGames(team._id, matches);
-  const grouped = STATUS_ORDER.map((status) => ({
-    status,
-    label: STATUS_LABELS[status],
-    games: games.filter((g) => g.match.status === status),
-  })).filter((g) => g.games.length > 0);
+
+  const gamesByStatus = games.reduce<Record<MatchStatus, TeamGameView[]>>(
+    (acc, g) => {
+      acc[g.match.status].push(g);
+      return acc;
+    },
+    { live: [], scheduled: [], finished: [], postponed: [], cancelled: [] },
+  );
+
+  const finishedBucket = {
+    status: "finished" as const,
+    label: STATUS_LABELS.finished,
+    games: gamesByStatus.finished,
+  };
 
   const summary = buildSummary(games);
+  const pointDiff = summary.pointsFor - summary.pointsAgainst;
+  const avgFor = average(summary.pointsFor, summary.finishedGames);
+  const avgAgainst = average(summary.pointsAgainst, summary.finishedGames);
+
+  const liveGame = gamesByStatus.live[0] ?? null;
+  const nextScheduled =
+    gamesByStatus.scheduled
+      .slice()
+      .sort((a, b) => parseDateTime(a.match) - parseDateTime(b.match))
+      .at(0) ?? null;
+  const nextGame = liveGame ?? nextScheduled;
+
+  const roster = players
+    .slice()
+    .sort((a, b) => (a.number ?? 999) - (b.number ?? 999));
+
+  const rosterByGroup = roster.reduce<Record<RosterGroupKey, Player[]>>(
+    (acc, p) => {
+      acc[rosterGroupForPosition(p.position)].push(p);
+      return acc;
+    },
+    { PG: [], SG: [], SF: [], PF: [], C: [], OTHER: [] },
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <section className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#002554] via-[#003d82] to-[#fd7209]" />
-          <div className="relative flex flex-col gap-6 px-6 py-8 sm:px-10 sm:py-10 md:flex-row md:items-end md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-white/30 bg-white/10 sm:h-28 sm:w-28">
-                {team.logo ? (
-                  <Image
-                    src={team.logo}
-                    alt={team.name}
-                    fill
-                    sizes="(max-width: 640px) 96px, 112px"
-                    className="object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white">
-                    {team.name.slice(0, 2).toUpperCase()}
+      <div className="overflow-hidden rounded-3xl">
+        <header className="relative isolate overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#001a3a] via-[#003d82] to-[#fd7209]" />
+          <div className="absolute inset-0 opacity-20 [background:radial-gradient(circle_at_top_left,rgba(255,255,255,0.6),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.35),transparent_45%)]" />
+          <div className="relative px-6 py-8 sm:px-10 sm:py-10">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-white/30 bg-white/10 ring-1 ring-white/10 sm:h-28 sm:w-28">
+                  {team.logo ? (
+                    <Image
+                      src={team.logo}
+                      alt={team.name}
+                      fill
+                      sizes="(max-width: 640px) 96px, 112px"
+                      className="object-cover"
+                      unoptimized
+                      priority
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white">
+                      {team.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <nav className="flex items-center gap-2 text-xs text-white/75">
+                    <Link className="transition hover:text-white" href="/teams">
+                      კლუბები
+                    </Link>
+                    <span className="text-white/50">/</span>
+                    <span className="truncate text-white/90">{team.name}</span>
+                  </nav>
+                  <h1 className="mt-2 truncate text-2xl font-semibold text-white sm:text-3xl">
+                    {team.name}
+                  </h1>
+                  <p className="mt-1 dejavu-sans text-sm text-white/90">
+                    {team.city || "—"} • {team.ageCategory?.name || "—"}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/15">
+                      {summary.wins}-{summary.losses}
+                    </span>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/15">
+                      PF {summary.pointsFor} • PA {summary.pointsAgainst}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-semibold ring-1",
+                        pointDiff >= 0
+                          ? "bg-emerald-500/15 text-white ring-emerald-200/30"
+                          : "bg-rose-500/15 text-white ring-rose-200/30",
+                      )}
+                    >
+                      DIFF {pointDiff >= 0 ? "+" : ""}
+                      {pointDiff}
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
-              <div>
-                <p className="arial-caps text-xs tracking-wider text-white/80">კლუბის პროფილი</p>
-                <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">{team.name}</h1>
-                <p className="mt-1 dejavu-sans text-sm text-white/90">
-                  {team.city || "—"} • {team.ageCategory?.name || "—"}
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/teams"
-              className="inline-flex w-fit items-center rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
-            >
-              კლუბების სია
-            </Link>
-          </div>
-        </div>
 
-        <div className="grid gap-4 border-t border-zinc-200 bg-zinc-50/60 p-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">მოთამაშეები</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{players.length}</p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">სულ თამაშები</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{summary.totalGames}</p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">მოგება / წაგება</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">
-              {summary.wins} / {summary.losses}
-            </p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">საშ. ჩაგდებული ქულა</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">
-              {average(summary.pointsFor, summary.finishedGames)}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 border-t border-zinc-200 p-6 sm:p-8 lg:grid-cols-12">
-          <section className="lg:col-span-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="arial-caps text-lg font-semibold text-zinc-900">შემადგენლობა</h2>
-              <span className="rounded-full bg-[#00306d]/10 px-3 py-1 text-xs font-semibold text-[#00306d]">
-                {players.length}
-              </span>
+              <Link
+                href="/teams"
+                className="inline-flex w-fit items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                კლუბების სია
+              </Link>
             </div>
-            {players.length === 0 ? (
-              <p className="text-sm text-zinc-600 dejavu-sans">გუნდის მოთამაშეები არ მოიძებნა.</p>
-            ) : (
-              <ul className="space-y-2">
-                {players
-                  .slice()
-                  .sort((a, b) => (a.number ?? 999) - (b.number ?? 999))
-                  .map((player) => (
-                    <li key={player._id}>
-                      <Link
-                        href={`/players/${player._id}`}
-                        className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 transition hover:bg-zinc-100"
+          </div>
+        </header>
+
+        <section className="grid gap-0 overflow-hidden rounded-b-2xl border-t border-[#00306d] bg-[#00112d] sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            className="border-b border-white/10 sm:border-r sm:border-white/10"
+            label="მოთამაშეები"
+            value={players.length}
+          />
+          <StatCard
+            className="border-b border-white/10 lg:border-r lg:border-white/10"
+            label="სულ თამაშები"
+            value={summary.totalGames}
+            subValue={`დასრულებული: ${summary.finishedGames}`}
+          />
+          <StatCard
+            className="border-b border-white/10 sm:border-r sm:border-white/10 lg:border-b-0"
+            label="მოგება / წაგება"
+            value={`${summary.wins} / ${summary.losses}`}
+            subValue={`Record: ${summary.wins}-${summary.losses}`}
+          />
+          <StatCard
+            label="საშ. ქულები"
+            value={`${avgFor} / ${avgAgainst}`}
+            subValue="ჩაგდებული / გაშვებული"
+          />
+        </section>
+
+        <div className="grid gap-6 border-t border-zinc-200 py-6  lg:grid-cols-12">
+          <main className="space-y-6 lg:col-span-4">
+            <section>
+              {!nextGame ? (
+                <EmptyCard
+                  title="მიმდინარე/დაგეგმილი თამაში არაა"
+                  description="როცა მატჩი დაემატება, აქ გამოჩნდება დრო, ადგილი და მეტოქე."
+                />
+              ) : (
+                <div className="relative overflow-hidden rounded-3xl shadow-xs">
+                  <div className="relative rounded-2xl bg-white/85 p-4 sm:p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full bg-[#fd7208]"
+                          aria-hidden="true"
+                        />
+                        <span className="arial-caps py-1 text-xs font-semibold text-zinc-600">
+                          შემდეგი თამაში
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-600">
+                        {formatDate(nextGame.match.date)} •{" "}
+                        {formatTime(nextGame.match.time)} •{" "}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex items-center justify-center flex-col gap-3",
+                          nextGame.isHome ? "justify-start" : "justify-end",
+                        )}
                       >
-                        <span className="truncate text-sm font-medium text-zinc-800">
-                          {player.firstName} {player.lastName}
-                        </span>
-                        <span className="ml-3 rounded-md bg-white px-2 py-0.5 text-xs font-semibold text-zinc-700">
-                          #{player.number ?? "-"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </section>
+                        {team.logo ? (
+                          <Image
+                            src={team.logo}
+                            alt={team.name}
+                            width={52}
+                            height={52}
+                            className="h-12 w-12 rounded-2xl bg-zinc-100 object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-sm font-semibold text-zinc-600">
+                            {team.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "min-w-0",
+                            nextGame.isHome ? "text-left" : "text-right",
+                          )}
+                        >
+                          <p className="truncate text-sm dejavu-sans font-semibold text-zinc-700">
+                            {team.name}
+                          </p>
+                        </div>
+                      </div>
 
-          <section className="lg:col-span-8">
-            <h2 className="arial-caps mb-3 text-lg font-semibold text-zinc-900">თამაშები სტატუსებით</h2>
-            {grouped.length === 0 ? (
-              <p className="text-sm text-zinc-600 dejavu-sans">ამ კლუბისთვის თამაშები არ მოიძებნა.</p>
-            ) : (
-              <div className="space-y-5">
-                {grouped.map((bucket) => (
-                  <article key={bucket.status} className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-700">
-                        {bucket.label}
-                      </h3>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700">
-                        {bucket.games.length}
+                      <div className="px-2 text-center">
+                        <span className="flex items-center justify-center text-zinc-700 text-sm font-bold arial-caps">
+                          VS
+                        </span>
+                      </div>
+
+                      <div
+                        className={cn(
+                          "flex items-center justify-center flex-col gap-3",
+                          nextGame.isHome ? "justify-end" : "justify-start",
+                        )}
+                      >
+                        {nextGame.opponentLogo ? (
+                          <Image
+                            src={nextGame.opponentLogo}
+                            alt={nextGame.opponentName}
+                            width={52}
+                            height={52}
+                            className="h-12 w-12 rounded-2xl bg-zinc-100 object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-sm font-semibold text-zinc-600">
+                            {nextGame.opponentName.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "min-w-0",
+                            nextGame.isHome ? "text-right" : "text-left",
+                          )}
+                        >
+                          <p className="truncate text-sm dejavu-sans font-semibold text-zinc-700">
+                            {nextGame.opponentName}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <span className="text-xs font-semibold dejavu-sans text-zinc-600">
+                        {nextGame.match.location || "—"}
                       </span>
                     </div>
-                    <ul className="space-y-2">
-                      {bucket.games.map((game) => (
-                        <li key={game.match._id} className="rounded-xl border border-zinc-200 bg-white p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-xs text-zinc-500">
-                                {formatDate(game.match.date)} • {formatTime(game.match.time)} •{" "}
-                                {game.match.location || "Unknown location"}
-                              </p>
-                              <p className="mt-1 truncate font-semibold text-zinc-900">
-                                {game.isHome ? "VS" : "AT"} {game.opponentName}
-                              </p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section>
+              {finishedBucket.games.length === 0 ? (
+                <EmptyCard
+                  title="მატჩები არ მოიძებნა"
+                  description="ამ კლუბისთვის მატჩები ჯერ არ არის დამატებული."
+                />
+              ) : (
+                <div className="space-y-5">
+                  {[finishedBucket].map((bucket) => (
+                    <section
+                      key={bucket.status}
+                      className="rounded-2xl bg-white overflow-hidden shadow-xs"
+                    >
+                      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/70 px-4 py-3 sm:px-5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "rounded-full px-3 py-1 text-xs font-semibold",
+                              statusPillClasses(bucket.status),
+                            )}
+                          >
+                            {bucket.label}
+                          </span>
+                          <span className="text-xs font-semibold text-zinc-500">
+                            ({bucket.games.length})
+                          </span>
+                        </div>
+                      </div>
+
+                      <ul className="divide-y divide-zinc-200">
+                        {bucket.games.map((game) => (
+                          <li key={game.match._id} className="p-4 sm:p-5">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="truncate text-base font-semibold text-zinc-900">
+                                    <span className="text-zinc-500">
+                                      {game.isHome ? "VS" : "AT"}
+                                    </span>{" "}
+                                    {game.opponentName}
+                                  </p>
+                                </div>
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  {formatDate(game.match.date)} •{" "}
+                                  {formatTime(game.match.time)}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-semibold text-[#00306d] tabular-nums">
+                                    {game.teamScore != null &&
+                                    game.opponentScore != null
+                                      ? `${game.teamScore} - ${game.opponentScore}`
+                                      : "—"}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {game.opponentLogo ? (
-                                <Image
-                                  src={game.opponentLogo}
-                                  alt={game.opponentName}
-                                  width={28}
-                                  height={28}
-                                  className="h-7 w-7 rounded bg-zinc-100 object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="h-7 w-7 rounded bg-zinc-100" />
-                              )}
-                              <span className="rounded-md border border-zinc-200 px-2 py-1 text-sm font-semibold text-[#00306d] tabular-nums">
-                                {game.teamScore != null && game.opponentScore != null
-                                  ? `${game.teamScore} - ${game.opponentScore}`
-                                  : "—"}
-                              </span>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                ))}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              )}
+            </section>
+          </main>
+
+          <aside className="space-y-6 lg:col-span-8">
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="arial-caps text-lg font-semibold text-zinc-900">
+                  გუნდის შემადგენლობა
+                </h2>
+                <span className="rounded-full bg-[#00306d]/10 px-3 py-1 text-xs font-semibold text-[#00306d]">
+                  {roster.length}
+                </span>
               </div>
-            )}
-          </section>
+
+              {roster.length === 0 ? (
+                <EmptyCard
+                  title="მოთამაშეები არ მოიძებნა"
+                  description="ამ გუნდს ჯერ არ აქვს დამატებული მოთამაშეები."
+                />
+              ) : (
+                <div className="space-y-6">
+                  {ROSTER_GROUPS.filter(
+                    (g) => rosterByGroup[g.key].length > 0,
+                  ).map((g) => (
+                    <div key={g.key}>
+                      <div className="mb-3 flex items-center gap-3 text-black">
+                        <span className="inline-flex items-center pr-3 font-semibold py-0.5 text-sm text-[#9d4300] arial-caps">
+                          {g.title}
+                        </span>
+                        <div className="h-px flex-1 bg-zinc-200/80" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {rosterByGroup[g.key].map((p) => (
+                          <PlayerCard key={p._id} player={p} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </aside>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

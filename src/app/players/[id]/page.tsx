@@ -22,6 +22,13 @@ function getTeamName(teamRef: Player["teamId"]): string {
   return teamRef.name || "Unknown Team";
 }
 
+function getTeamHref(teamRef: Player["teamId"]): string {
+  if (!teamRef) return "/teams";
+  if (typeof teamRef === "string") return "/teams";
+  const id = (teamRef as { _id?: string })._id;
+  return id ? `/teams/${id}` : "/teams";
+}
+
 function getAge(birthDate?: string): number | null {
   if (!birthDate) return null;
   const date = new Date(birthDate);
@@ -151,10 +158,10 @@ export default async function PlayerDetailPage({
               </div>
             </div>
             <Link
-              href="/players"
+              href={getTeamHref(player.teamId)}
               className="inline-flex w-fit dejavu-sans items-center rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
             >
-              მოთამაშეების სია
+              კლუბზე დაბრუნება
             </Link>
           </div>
         </div>

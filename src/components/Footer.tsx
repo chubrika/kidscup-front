@@ -11,7 +11,6 @@ const MAIN_NAV = [
 
 const SUB_NAV = [
   { href: "/teams", label: "კლუბები" },
-  { href: "/players", label: "მოთამაშეები" },
   { href: "/standings", label: "ცხრილები" },
   { href: "/calendar", label: "კალენდარი" },
   { href: "/contact", label: "კონტაქტი" },
