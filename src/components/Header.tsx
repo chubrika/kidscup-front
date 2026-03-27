@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { LiveBadge } from "@/components/live/LiveBadge";
 import { MenuIcon, XIcon } from "lucide-react";
+import type { Category } from "@/lib/api";
 
 const MAIN_NAV = [
   // { href: "/", label: "მთავარი" },
@@ -23,7 +24,11 @@ const MOBILE_NAV = [
   { href: "/contact", label: "კონტაქტი" }
 ];
 
-export function Header() {
+type HeaderProps = {
+  categories?: Category[];
+};
+
+export function Header(_props: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
