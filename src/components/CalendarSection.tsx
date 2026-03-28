@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Category, Match } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 
 type CalendarSectionProps = {
   categories: Category[];
@@ -98,14 +98,14 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
    <div className="flex justify-between items-center">
    <div className="flex items-center gap-3">
         <span className="inline-flex h-8 w-8 items-center justify-center">
-          <CalendarDays className="h-7 w-7 text-[#9d4300]" />
+          <CalendarDays className="h-5 w-5 md:h-7 md:w-7 text-[#9d4300]" />
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight text-[#00112d] dejavu-sans">
+        <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-[#00112d] dejavu-sans">
           დაგეგმილი თამაშები
         </h2>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="კატეგორიის ფილტრი">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="კატეგორიის ფილტრი">
         {categories.map((cat) => {
           const selected = selectedCategoryId === cat._id;
           return (
@@ -115,7 +115,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
               role="tab"
               aria-selected={selected}
               onClick={() => setSelectedCategoryId(cat._id)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium arial-caps transition-colors ${
+              className={`rounded-full cursor-pointer border px-3 py-1 text-xs font-medium arial-caps transition-colors ${
                 selected
                   ? "border-[#00112d] bg-[#00112d] text-white"
                   : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
@@ -164,7 +164,6 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
                       <p className="text-lg font-semibold text-[#00112d] dejavu-sans truncate">
                         {getTeamName(m.homeTeam)}
                       </p>
-                      <p className="mt-1 arial-caps text-[11px] tracking-widest text-zinc-400">HOME</p>
                     </div>
 
                     <div className="flex h-8 w-12 items-center justify-center rounded-full bg-zinc-200 text-[12px] font-semibold text-zinc-600">
@@ -175,7 +174,6 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
                       <p className="text-lg font-semibold text-[#00112d] dejavu-sans truncate">
                         {getTeamName(m.awayTeam)}
                       </p>
-                      <p className="mt-1 arial-caps text-[11px] tracking-widest text-zinc-400">AWAY</p>
                     </div>
                   </div>
 
@@ -188,9 +186,10 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
           <div className="px-1 pt-1">
             <Link
               href="/calendar"
-              className="inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+              className="inline-flex items-center dejavu-sans justify-center px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
             >
               სრული კალენდარი
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Link>
           </div>
         )}

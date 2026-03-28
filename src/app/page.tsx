@@ -1,4 +1,5 @@
 import { getCategories, getNews } from "@/lib/api";
+import { fetchPublicConfig } from "@/lib/publicConfig";
 import { CalendarSection } from "@/components/CalendarSection";
 import { LastMatchesSection } from "@/components/LastMatchesSection";
 import { NewsSection } from "@/components/NewsSection";
@@ -18,6 +19,16 @@ export default async function Home() {
     news = await getNews();
   } catch {
     // Backend may be down
+  }
+
+  let teamRegistrationEnabled = false;
+  try {
+    const publicConfig = await fetchPublicConfig({
+      next: { revalidate: 60 },
+    });
+    teamRegistrationEnabled = publicConfig.team_registration_enabled;
+  } catch {
+    // Same as Header: hide registration CTAs if config cannot be loaded
   }
 
   return (
@@ -42,7 +53,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <RegisterSection />
+      {teamRegistrationEnabled ? <RegisterSection /> : null}
     </div>
   );
 }

@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import useSWR from "swr";
 import { LiveBadge } from "@/components/live/LiveBadge";
 import { MenuIcon, XIcon } from "lucide-react";
 import type { Category } from "@/lib/api";
+import {
+  getPublicConfigUrl,
+  type PublicAppConfig,
+} from "@/lib/publicConfig";
 
 const MAIN_NAV = [
   // { href: "/", label: "მთავარი" },
@@ -28,9 +33,49 @@ type HeaderProps = {
   categories?: Category[];
 };
 
+async function publicConfigFetcher(url: string): Promise<PublicAppConfig> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Failed to load config");
+  }
+  return res.json();
+}
+
+function RegisterTeamButtonLink({
+  className,
+  children,
+}: {
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link href="/register-team" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function RegisterTeamButtonSkeleton({ className }: { className: string }) {
+  return (
+    <div
+      className={`rounded-lg bg-zinc-200/80 animate-pulse ${className}`}
+      aria-hidden
+    />
+  );
+}
+
 export function Header(_props: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const { data: config, isLoading, error } = useSWR(
+    getPublicConfigUrl(),
+    publicConfigFetcher,
+    { revalidateOnFocus: true },
+  );
+
+  const showRegister = Boolean(config?.team_registration_enabled);
+  const registerLoading = isLoading && !error;
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -49,12 +94,15 @@ export function Header(_props: HeaderProps) {
             <Image src="/kidsCupLogo.png" alt="KidsCup" width={60} height={60} className="h-full w-auto" unoptimized />
           </Link>
 
-          <Link
-            href="/register-team"
-            className="md:hidden bg-[#fd7208] text-[#592300] px-3 py-2 rounded-lg font-label font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-secondary/20 whitespace-nowrap"
-          >
-            <span className="flex items-center justify-center dejavu-sans">გუნდის რეგისტრაცია</span>
-          </Link>
+          {registerLoading ? (
+            <RegisterTeamButtonSkeleton className="md:hidden h-9 w-[148px]" />
+          ) : showRegister ? (
+            <RegisterTeamButtonLink className="md:hidden bg-[#fd7208] text-[#592300] px-3 py-2 rounded-lg font-label font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-secondary/20 whitespace-nowrap">
+              <span className="flex items-center justify-center dejavu-sans">
+                გუნდის რეგისტრაცია
+              </span>
+            </RegisterTeamButtonLink>
+          ) : null}
 
           <div className="md:flex flex-shrink-0">
             <LiveBadge />
@@ -73,11 +121,15 @@ export function Header(_props: HeaderProps) {
               )}
             </Link>
           ))}
-          <Link href="/register-team" className="bg-[#fd7208] text-[#592300] px-6 py-2.5 dejavu-sans rounded-lg font-label font-bold text-sm hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-secondary/20">
-            <span className="flex items-center justify-center">
-              გუნდის რეგისტრაცია
-            </span>
-          </Link>
+          {registerLoading ? (
+            <RegisterTeamButtonSkeleton className="hidden md:block h-10 w-[180px]" />
+          ) : showRegister ? (
+            <RegisterTeamButtonLink className="hidden md:flex bg-[#fd7208] text-[#592300] px-6 py-2.5 dejavu-sans rounded-lg font-label font-bold text-sm hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-secondary/20 items-center justify-center">
+              <span className="flex items-center justify-center">
+                გუნდის რეგისტრაცია
+              </span>
+            </RegisterTeamButtonLink>
+          ) : null}
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">
