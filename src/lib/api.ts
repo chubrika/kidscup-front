@@ -13,6 +13,8 @@ export type Category = {
   name: string;
 };
 
+export type TeamStatus = "pending" | "approved" | "rejected";
+
 export type Team = {
   _id: string;
   name: string;
@@ -22,6 +24,7 @@ export type Team = {
   coachName?: string;
   assistantCoachName?: string;
   doctor?: string;
+  status?: TeamStatus;
   ageCategory?: { _id: string; name: string };
   createdAt?: string;
 };

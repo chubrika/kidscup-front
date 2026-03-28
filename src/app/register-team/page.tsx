@@ -180,7 +180,9 @@ export default function RegisterTeamPage() {
       setCreatedTeam(data as Team);
       setPlayers([]);
       setCurrentStep(2);
-      setSuccess("გუნდი წარმატებით დარეგისტრირდა. ახლა დაამატეთ მოთამაშეები.");
+      setSuccess(
+        "გუნდი შექმნილია და ელოდება ადმინისტრატორის დამტკიცებას. საიტზე გამოჩნდება დამტკიცების შემდეგ. ახლა დაამატეთ მოთამაშეები.",
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : "გუნდის შექმნა ვერ მოხერხდა";
       setError(message);
@@ -288,7 +290,9 @@ export default function RegisterTeamPage() {
       return;
     }
     setCurrentStep(3);
-    setSuccess("რეგისტრაციის მოთხოვნა წარმატებით გაიგზავნა.");
+    setSuccess(
+      "რეგისტრაციის მოთხოვნა მიღებულია. გუნდი ელოდება ადმინისტრატორის დამტკიცებას — დამტკიცების შემდეგ გამოჩნდება საჯარო საიტზე.",
+    );
   };
 
   return (
@@ -643,7 +647,7 @@ export default function RegisterTeamPage() {
         <section className={`mt-6 ${sectionCardClassName}`}>
           <h2 className="arial-caps mb-2 text-lg font-semibold text-zinc-900">3) რეგისტრაცია დასრულდა</h2>
           <p className="dejavu-sans mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-            თქვენი გუნდის რეგისტრაციის მოთხოვნა წარმატებით გაიგზავნა.
+            თქვენი გუნდი მოლოდინშია — ადმინისტრატორი დაუდასტურებს მონაცემებს. დამტკიცების შემდეგ გუნდი გამოჩნდება საიტზე.
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

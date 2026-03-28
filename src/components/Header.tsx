@@ -56,7 +56,7 @@ export function Header(_props: HeaderProps) {
             <span className="flex items-center justify-center dejavu-sans">გუნდის რეგისტრაცია</span>
           </Link>
 
-          <div className="hidden md:flex flex-shrink-0">
+          <div className="md:flex flex-shrink-0">
             <LiveBadge />
           </div>
         </div>

@@ -5,13 +5,12 @@ import { Facebook, Instagram, Mail, Phone, Youtube } from "lucide-react";
 const MAIN_NAV = [
   { href: "/", label: "მთავარი" },
   { href: "/news", label: "სიახლეები" },
-  { href: "/photo", label: "ფოტო" },
-  { href: "/video", label: "ვიდეო" },
+  { href: "/media", label: "მედია" },
 ] as const;
 
 const SUB_NAV = [
   { href: "/teams", label: "კლუბები" },
-  { href: "/standings", label: "ცხრილები" },
+  { href: "/league", label: "ჩემპიონატები" },
   { href: "/calendar", label: "კალენდარი" },
   { href: "/contact", label: "კონტაქტი" },
 ] as const;

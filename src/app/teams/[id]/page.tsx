@@ -72,9 +72,10 @@ function parseDateTime(match: Match): number {
 function formatDate(dateString: string): string {
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "-";
-  return new Intl.DateTimeFormat("ka-GE", {
-    month: "2-digit",
-    day: "2-digit",
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(d);
 }
 
@@ -147,17 +148,17 @@ function average(value: number, total: number): string {
 function statusPillClasses(status: MatchStatus): string {
   switch (status) {
     case "live":
-      return "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-600/20";
+      return "text-emerald-700 arial-caps text-xs font-semibold";
     case "scheduled":
-      return "bg-sky-500/15 text-sky-700 ring-1 ring-sky-600/20";
+      return "text-sky-700 arial-caps text-xs font-semibold";
     case "finished":
-      return "bg-zinc-500/10 text-zinc-700 ring-1 ring-zinc-600/15";
+      return "text-zinc-700 arial-caps text-xs font-semibold";
     case "postponed":
-      return "bg-amber-500/15 text-amber-800 ring-1 ring-amber-600/20";
+      return "text-amber-800 arial-caps text-xs font-semibold";
     case "cancelled":
-      return "bg-rose-500/15 text-rose-700 ring-1 ring-rose-600/20";
+      return "text-rose-700 arial-caps text-xs font-semibold";
     default:
-      return "bg-zinc-500/10 text-zinc-700 ring-1 ring-zinc-600/15";
+      return "text-zinc-700 arial-caps text-xs font-semibold";
   }
 }
 
@@ -173,15 +174,17 @@ function StatCard({
   className?: string;
 }) {
   return (
-    <div className={cn("p-4", className)}>
-      <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
+    <div className={cn("px-2.5 py-2 sm:p-4", className)}>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60 sm:text-xs sm:tracking-wider">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white tabular-nums">
+      <p className="mt-1 text-lg font-semibold leading-tight text-white tabular-nums sm:mt-2 sm:text-2xl sm:leading-none">
         {value}
       </p>
       {subValue ? (
-        <p className="mt-1 text-xs text-white/50 dejavu-sans">{subValue}</p>
+        <p className="mt-0.5 text-[10px] leading-snug text-white/50 dejavu-sans sm:mt-1 sm:text-xs sm:leading-normal">
+          {subValue}
+        </p>
       ) : null}
     </div>
   );
@@ -431,52 +434,26 @@ export default async function TeamDetailPage({
                   <p className="mt-1 dejavu-sans text-sm text-white/90">
                     {team.city || "—"} • {team.ageCategory?.name || "—"}
                   </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/15">
-                      {summary.wins}-{summary.losses}
-                    </span>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/15">
-                      PF {summary.pointsFor} • PA {summary.pointsAgainst}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold ring-1",
-                        pointDiff >= 0
-                          ? "bg-emerald-500/15 text-white ring-emerald-200/30"
-                          : "bg-rose-500/15 text-white ring-rose-200/30",
-                      )}
-                    >
-                      DIFF {pointDiff >= 0 ? "+" : ""}
-                      {pointDiff}
-                    </span>
-                  </div>
                 </div>
               </div>
-
-              <Link
-                href="/teams"
-                className="inline-flex w-fit items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
-              >
-                კლუბების სია
-              </Link>
             </div>
           </div>
         </header>
 
-        <section className="grid gap-0 overflow-hidden rounded-b-2xl border-t border-[#00306d] bg-[#00112d] sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-0 overflow-hidden rounded-b-2xl border-t border-[#00306d] bg-[#00112d] lg:grid-cols-4">
           <StatCard
-            className="border-b border-white/10 sm:border-r sm:border-white/10"
+            className="border-b border-r border-white/10 lg:border-b-0"
             label="მოთამაშეები"
             value={players.length}
           />
           <StatCard
-            className="border-b border-white/10 lg:border-r lg:border-white/10"
+            className="border-b border-white/10 lg:border-r lg:border-b-0"
             label="სულ თამაშები"
             value={summary.totalGames}
             subValue={`დასრულებული: ${summary.finishedGames}`}
           />
           <StatCard
-            className="border-b border-white/10 sm:border-r sm:border-white/10 lg:border-b-0"
+            className="border-r border-white/10"
             label="მოგება / წაგება"
             value={`${summary.wins} / ${summary.losses}`}
             subValue={`Record: ${summary.wins}-${summary.losses}`}
@@ -511,7 +488,7 @@ export default async function TeamDetailPage({
                       </div>
                       <p className="text-xs font-semibold text-zinc-600">
                         {formatDate(nextGame.match.date)} •{" "}
-                        {formatTime(nextGame.match.time)} •{" "}
+                        {formatTime(nextGame.match.time)}
                       </p>
                     </div>
 
@@ -608,28 +585,25 @@ export default async function TeamDetailPage({
                   {[finishedBucket].map((bucket) => (
                     <section
                       key={bucket.status}
-                      className="rounded-2xl bg-white overflow-hidden shadow-xs"
+                      className="rounded-2xl overflow-hidden shadow-xs"
                     >
-                      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/70 px-4 py-3 sm:px-5">
+                      <div className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-2">
                           <span
                             className={cn(
-                              "rounded-full px-3 py-1 text-xs font-semibold",
+                              "rounded-full py-1 text-xs font-semibold",
                               statusPillClasses(bucket.status),
                             )}
                           >
                             {bucket.label}
-                          </span>
-                          <span className="text-xs font-semibold text-zinc-500">
-                            ({bucket.games.length})
                           </span>
                         </div>
                       </div>
 
                       <ul className="divide-y divide-zinc-200">
                         {bucket.games.map((game) => (
-                          <li key={game.match._id} className="p-4 sm:p-5">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <li key={game.match._id} className="p-4 bg-white rounded-xl mb-3">
+                            <div className="flex gap-3 flex-row items-center justify-between">
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <p className="truncate text-base font-semibold text-zinc-900">
@@ -640,14 +614,13 @@ export default async function TeamDetailPage({
                                   </p>
                                 </div>
                                 <p className="mt-1 text-xs text-zinc-500">
-                                  {formatDate(game.match.date)} •{" "}
-                                  {formatTime(game.match.time)}
+                                  {formatDate(game.match.date)} 
                                 </p>
                               </div>
 
                               <div className="flex items-center justify-between gap-3 sm:justify-end">
                                 <div className="flex items-center gap-2">
-                                  <span className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-semibold text-[#00306d] tabular-nums">
+                                  <span className="px-3 py-1.5 text-xl font-semibold text-black tabular-nums">
                                     {game.teamScore != null &&
                                     game.opponentScore != null
                                       ? `${game.teamScore} - ${game.opponentScore}`
@@ -694,7 +667,7 @@ export default async function TeamDetailPage({
                         </span>
                         <div className="h-px flex-1 bg-zinc-200/80" />
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {rosterByGroup[g.key].map((p) => (
                           <PlayerCard key={p._id} player={p} />
                         ))}

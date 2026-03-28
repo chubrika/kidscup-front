@@ -11,7 +11,7 @@ export function LiveBadge() {
   return (
     <Link
       href="/live"
-      className="group inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ring-1 ring-white/15 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+      className="group inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow-sm  transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       aria-label="Watch live match"
     >
       <span className="relative flex h-2.5 w-2.5">
