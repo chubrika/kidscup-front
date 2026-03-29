@@ -27,7 +27,7 @@ export default async function NewsDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 bg-white">
+    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <p className="mb-4 text-sm text-zinc-500">
         <Link href="/news" className="hover:text-zinc-700 underline">
           სიახლეები

@@ -32,28 +32,36 @@ export default async function Home() {
   }
 
   return (
-    <div className="mx-auto bg-white max-w-6xl">
+    <div className="">
       {/* Last matches */}
-      <div className="px-4 py-8 sm:px-6">
-        <LastMatchesSection categories={categories} />
+      <div className="mx-auto max-w-6xl">
+        <div className="px-4 py-8 sm:px-6">
+          <LastMatchesSection categories={categories} />
+        </div>
       </div>
 
       {/* News */}
-      <div className="px-4 py-8 sm:px-6 bg-[#f1f3f8]">
-        <NewsSection news={news} />
+      <div className="bg-sky">
+        <div className="mx-auto max-w-6xl">
+          <div className="px-4 py-8 sm:px-6 ">
+            <NewsSection news={news} />
+          </div>
+        </div>
       </div>
 
       {/* Calendar (left) + Standings (right) */}
-      <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <CalendarSection categories={categories} />
+      <div className="mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <CalendarSection categories={categories} />
+          </div>
+          <div className="lg:col-span-4">
+            <StandingsSection categories={categories} />
+          </div>
         </div>
-        <div className="lg:col-span-4">
-          <StandingsSection categories={categories} />
-        </div>
-      </div>
 
-      {teamRegistrationEnabled ? <RegisterSection /> : null}
+        {teamRegistrationEnabled ? <RegisterSection /> : null}
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@
 }
 
 :root {
-  --background: #f1f3f8;
+  --background: #fff;
   --foreground: #171717;
 }
 
@@ -29,6 +29,10 @@
 
 .dejavu-sans {
   font-family: "Dejavu Sans", sans-serif;
+}
+
+.bg-sky{
+  background-color: #f1f3f8;
 }
 
 @theme inline {
