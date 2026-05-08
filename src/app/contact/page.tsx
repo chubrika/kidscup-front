@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 const CONTACT = {
   phoneDisplay: "+995 555 94 44 99",
   phoneHref: "+995555944499",
-  emailDisplay: "info@kidscup.ge",
-  emailHref: "info@kidscup.ge",
+  emailDisplay: "tbilisikidscup@gmail.com",
+  emailHref: "tbilisikidscup@gmail.com",
   addressDisplay: "თბილისი, საქართველო",
   facebookUrl: "https://www.facebook.com/profile.php?id=61588340670695",
-  youtubeUrl: "https://www.youtube.com/",
-  instagramUrl: "https://www.instagram.com/",
+  youtubeUrl: "https://www.youtube.com/@tbilisikidscup",
+  instagramUrl: "https://www.instagram.com/tbilisikidscup",
 } as const;
 
 function InfoCard({

@@ -18,8 +18,8 @@ const SUB_NAV = [
 const CONTACT = {
   phoneDisplay: "+995 555 94 44 99",
   phoneHref: "+995555944499",
-  emailDisplay: "info@kidscup.ge",
-  emailHref: "info@kidscup.ge",
+  emailDisplay: "tbilisikidscup@gmail.com",
+  emailHref: "tbilisikidscup@gmail.com",
 } as const;
 
 function SocialLink({
@@ -77,12 +77,12 @@ export function Footer() {
                   icon={<Facebook className="h-5 w-5" />}
                 />
                 <SocialLink
-                  href="https://www.youtube.com/"
+                  href="https://www.youtube.com/@tbilisikidscup"
                   label="YouTube"
                   icon={<Youtube className="h-5 w-5" />}
                 />
                 <SocialLink
-                  href="https://www.instagram.com/"
+                  href="https://www.instagram.com/tbilisikidscup"
                   label="Instagram"
                   icon={<Instagram className="h-5 w-5" />}
                 />

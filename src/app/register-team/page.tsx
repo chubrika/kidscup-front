@@ -22,6 +22,8 @@ type PlayerForm = {
   position: string;
   birthDate: string;
   height: string;
+  photo: string;
+  photoKey: string;
 };
 
 type TeamErrors = Partial<Record<keyof TeamForm, string>>;
@@ -44,7 +46,12 @@ const emptyPlayerForm: PlayerForm = {
   position: "",
   birthDate: "",
   height: "",
+  photo: "",
+  photoKey: "",
 };
+
+const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"] as const;
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 export default function RegisterTeamPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -62,6 +69,8 @@ export default function RegisterTeamPage() {
   const [teamLogoUrl, setTeamLogoUrl] = useState("");
   const [teamLogoKey, setTeamLogoKey] = useState("");
   const [teamLogoPreview, setTeamLogoPreview] = useState("");
+  const [isUploadingPlayerPhoto, setIsUploadingPlayerPhoto] = useState(false);
+  const [playerPhotoPreview, setPlayerPhotoPreview] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [teamErrors, setTeamErrors] = useState<TeamErrors>({});
@@ -234,6 +243,66 @@ export default function RegisterTeamPage() {
     }
   };
 
+  const uploadPlayerPhoto = async (file: File | null) => {
+    if (!file) return;
+    setError(null);
+    setSuccess(null);
+
+    if (!ACCEPTED_PHOTO_TYPES.includes(file.type as (typeof ACCEPTED_PHOTO_TYPES)[number])) {
+      setError("მოთამაშის ფოტოს ტიპი უნდა იყოს png, jpg ან webp");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("მოთამაშის ფოტოს ზომა არ უნდა აღემატებოდეს 4MB-ს");
+      return;
+    }
+
+    setIsUploadingPlayerPhoto(true);
+    try {
+      const signedRes = await fetch(`${API_URL}/upload-url?type=${encodeURIComponent(file.type)}`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const signedData = (await signedRes.json()) as
+        | { uploadUrl: string; fileUrl: string; key: string; message?: string }
+        | { message?: string };
+      if (!signedRes.ok || !("uploadUrl" in signedData)) {
+        const message =
+          typeof signedData === "object" && signedData && "message" in signedData && signedData.message
+            ? signedData.message
+            : "ფოტოს ატვირთვის ლინკის მიღება ვერ მოხერხდა";
+        throw new Error(message);
+      }
+
+      const uploadRes = await fetch(signedData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("მოთამაშის ფოტოს ატვირთვა ვერ მოხერხდა");
+
+      if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
+      const previewUrl = URL.createObjectURL(file);
+      setPlayerPhotoPreview(previewUrl);
+      setPlayerForm((prev) => ({
+        ...prev,
+        photo: signedData.fileUrl,
+        photoKey: signedData.key,
+      }));
+      setSuccess("მოთამაშის ფოტო აიტვირთა. ახლა შეიყვანეთ მონაცემები და დაამატეთ მოთამაშე.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "მოთამაშის ფოტოს ატვირთვა ვერ მოხერხდა";
+      setError(message);
+    } finally {
+      setIsUploadingPlayerPhoto(false);
+    }
+  };
+
+  const removePlayerPhoto = () => {
+    if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
+    setPlayerPhotoPreview("");
+    setPlayerForm((prev) => ({ ...prev, photo: "", photoKey: "" }));
+  };
+
   const addPlayer = async (event: FormEvent) => {
     event.preventDefault();
     if (!createdTeam?._id) return;
@@ -251,6 +320,8 @@ export default function RegisterTeamPage() {
         position: playerForm.position.trim(),
         birthDate: playerForm.birthDate || undefined,
         height: playerForm.height ? Number(playerForm.height) : undefined,
+        photo: playerForm.photo || undefined,
+        photoKey: playerForm.photoKey || undefined,
         teamId: createdTeam._id,
       };
 
@@ -270,7 +341,9 @@ export default function RegisterTeamPage() {
       setPlayers((prev) => [...prev, data as Player]);
       setPlayerForm(emptyPlayerForm);
       setPlayerErrors({});
-      setSuccess("მოთამაშე დაემატა. ფოტო მოგვიანებით შეუძლია ადმინისტრატორს დაამატოს.");
+      if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
+      setPlayerPhotoPreview("");
+      setSuccess("მოთამაშე დაემატა.");
     } catch (e) {
       const message = e instanceof Error ? e.message : "მოთამაშის დამატება ვერ მოხერხდა";
       setError(message);
@@ -600,8 +673,72 @@ export default function RegisterTeamPage() {
             </label>
 
             <div className="sm:col-span-3">
+              <span className="dejavu-sans text-sm text-zinc-700">მოთამაშის ფოტო (მხოლოდ ერთი)</span>
+              <input
+                id="player-photo-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={(e) => {
+                  void uploadPlayerPhoto(e.target.files?.[0] ?? null);
+                  e.target.value = "";
+                }}
+                className="sr-only"
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                  {playerPhotoPreview ? (
+                    <Image
+                      src={playerPhotoPreview}
+                      alt="Player photo preview"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
+                      ფოტო არ არის
+                    </span>
+                  )}
+                </div>
+
+                <label
+                  htmlFor="player-photo-upload"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-3 py-2 text-zinc-700 transition hover:border-[#00306d]/50 hover:bg-[#00306d]/5"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm">
+                    <ImagePlus className="h-5 w-5 text-[#00306d]" />
+                  </span>
+                  <span className="dejavu-sans text-sm">
+                    {isUploadingPlayerPhoto
+                      ? "ფოტო იტვირთება..."
+                      : playerForm.photoKey
+                        ? "ფოტოს შეცვლა"
+                        : "ფოტოს ატვირთვა"}
+                  </span>
+                </label>
+
+                {playerForm.photoKey && !isUploadingPlayerPhoto && (
+                  <button
+                    type="button"
+                    onClick={removePlayerPhoto}
+                    className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  >
+                    წაშლა
+                  </button>
+                )}
+              </div>
+              <span className="mt-1 block text-xs text-zinc-500">
+                {isUploadingPlayerPhoto
+                  ? "ფოტო იტვირთება..."
+                  : playerForm.photoKey
+                    ? "ფოტო ატვირთულია. ახალი ფოტოს არჩევა შეცვლის წინა ფოტოს."
+                    : "მხარდაჭერილი ფორმატები: png, jpg, webp · მაქს. 4MB · ერთი ფოტო თითო მოთამაშეზე"}
+              </span>
+            </div>
+
+            <div className="sm:col-span-3">
               <button
-                disabled={isSavingPlayer}
+                disabled={isSavingPlayer || isUploadingPlayerPhoto}
                 type="submit"
                 className="rounded-xl bg-[#fd7209] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e56203] disabled:cursor-not-allowed disabled:opacity-70"
               >
@@ -616,14 +753,33 @@ export default function RegisterTeamPage() {
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {players.map((player) => (
-                  <article key={player._id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <h3 className="font-semibold text-zinc-900">
-                      {player.firstName} {player.lastName}
-                    </h3>
-                    <div className="mt-2 space-y-1 text-sm text-zinc-700">
-                      <p>#{player.number}</p>
-                      <p>პოზიცია: {player.position || "—"}</p>
-                      <p>ფოტო: არა (ადმინი დაამატებს)</p>
+                  <article
+                    key={player._id}
+                    className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                  >
+                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                      {player.photo ? (
+                        <Image
+                          src={player.photo}
+                          alt={`${player.firstName} ${player.lastName}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                          ფოტო არ არის
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-zinc-900">
+                        {player.firstName} {player.lastName}
+                      </h3>
+                      <div className="mt-1 space-y-0.5 text-sm text-zinc-700">
+                        <p>#{player.number}</p>
+                        <p>პოზიცია: {player.position || "—"}</p>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -637,7 +793,7 @@ export default function RegisterTeamPage() {
               onClick={submitRegistrationRequest}
               className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700"
             >
-              Registration request
+              რეგისტრაციის დასრულება
             </button>
           </div>
         </section>

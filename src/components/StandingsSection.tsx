@@ -36,6 +36,7 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
     let cancelled = false;
     const load = async () => {
       const data = await fetchStandings(selectedCategoryId);
+      console.log(data);
       if (!cancelled) setStandingsGroups(data);
     };
     queueMicrotask(() => {

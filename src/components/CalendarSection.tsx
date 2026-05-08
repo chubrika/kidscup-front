@@ -63,7 +63,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
     let cancelled = false;
     const controller = new AbortController();
     const search = new URLSearchParams();
-    search.set("status", "finished");
+    search.set("status", "scheduled");
     if (selectedCategoryId) search.set("ageCategory", selectedCategoryId);
     const url = `${API_URL}/matches?${search.toString()}`;
 
@@ -100,7 +100,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
         <span className="inline-flex h-8 w-8 items-center justify-center">
           <CalendarDays className="h-5 w-5 md:h-7 md:w-7 text-[#9d4300]" />
         </span>
-        <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-[#00112d] dejavu-sans">
+        <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-[#00112d] arial-caps">
           დაგეგმილი თამაშები
         </h2>
       </div>
@@ -147,7 +147,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
             return (
               <div
                 key={m._id}
-                className="rounded-2xl border border-zinc-200 bg-white px-5 py-5 shadow-sm"
+                className="rounded-2xl border border-zinc-200 bg-white px-5 py-5"
               >
                 <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[220px_1fr_170px]">
                   <div className="min-w-0">

@@ -58,6 +58,7 @@ export type Match = {
   time?: string;
   location?: string;
   ageCategory?: Category | string;
+  refereesInfo?: string;
   status: MatchStatus;
   scoreHome?: number;
   scoreAway?: number;
@@ -72,6 +73,21 @@ export type Season = {
   startDate: string;
   endDate: string;
   isActive?: boolean;
+  albums?: Array<{
+    _id: string;
+    title: string;
+    createdAt?: string;
+    photos?: Array<{
+      url: string;
+      key: string;
+      createdAt?: string;
+    }>;
+  }>;
+  photos?: Array<{
+    url: string;
+    key: string;
+    createdAt?: string;
+  }>;
 };
 
 /** When populated by the API, teamId is an object with team details */
@@ -184,6 +200,16 @@ export async function getMatches(params?: {
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error("Failed to fetch matches");
+  return res.json();
+}
+
+export async function getMatchById(id: string): Promise<Match | null> {
+  const res = await fetch(`${API_URL}/matches/${encodeURIComponent(id)}`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 30 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch match");
   return res.json();
 }
 

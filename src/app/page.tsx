@@ -5,6 +5,7 @@ import { LastMatchesSection } from "@/components/LastMatchesSection";
 import { NewsSection } from "@/components/NewsSection";
 import { RegisterSection } from "@/components/RegisterSection";
 import { StandingsSection } from "@/components/StandingsSection";
+import { LatestAlbumsSection } from "@/components/LatestAlbumsSection";
 
 export default async function Home() {
   let categories: Awaited<ReturnType<typeof getCategories>> = [];
@@ -33,22 +34,6 @@ export default async function Home() {
 
   return (
     <div className="">
-      {/* Last matches */}
-      <div className="mx-auto max-w-6xl">
-        <div className="px-4 py-8 sm:px-6">
-          <LastMatchesSection categories={categories} />
-        </div>
-      </div>
-
-      {/* News */}
-      <div className="bg-sky">
-        <div className="mx-auto max-w-6xl">
-          <div className="px-4 py-8 sm:px-6 ">
-            <NewsSection news={news} />
-          </div>
-        </div>
-      </div>
-
       {/* Calendar (left) + Standings (right) */}
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
@@ -59,8 +44,22 @@ export default async function Home() {
             <StandingsSection categories={categories} />
           </div>
         </div>
-
         {teamRegistrationEnabled ? <RegisterSection /> : null}
+      </div>
+
+      {/* News */}
+      <div className="bg-sky">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
+            <div className="lg:col-span-8">
+              <NewsSection news={news} />
+              <LatestAlbumsSection />
+            </div>
+            <div className="lg:col-span-4">
+              <LastMatchesSection categories={categories} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

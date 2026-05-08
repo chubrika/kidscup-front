@@ -204,7 +204,13 @@ export function StandingsTable({
                       className="group border-b border-zinc-100 hover:bg-zinc-100/80"
                     >
                       <td className="py-3 pl-4 text-center text-zinc-600 font-medium">
-                        {index + 1}
+                        {index < 4 ? (
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-[#00306d] text-xs font-semibold text-white">
+                            {index + 1}
+                          </span>
+                        ) : (
+                          index + 1
+                        )}
                       </td>
                       <td className="py-3 pl-2 pr-4">
                         <div className="flex items-center gap-3">

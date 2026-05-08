@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getNews } from "@/lib/api";
 import { Image as ImageIcon } from "lucide-react";
 
@@ -39,33 +40,36 @@ export default async function NewsPage() {
         <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {sortedNews.map((item) => (
             <li key={item._id}>
-              <Link href={`/news/${item._id}`} className="block h-full">
-                <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-                  <div className="relative aspect-[16/10] w-full shrink-0 bg-zinc-100">
-                  {item.photoUrl?.trim() ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.photoUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-zinc-300">
-                      <ImageIcon className="h-16 w-16" strokeWidth={1.25} aria-hidden />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <h2 className="font-medium text-md dejavu-sans text-zinc-700 line-clamp-2">
-                    {item.title}
-                  </h2>
-                  <time
-                    dateTime={item.createdAt ?? undefined}
-                    className="mt-2 text-sm text-zinc-500 dejavu-sans"
-                  >
-                    {formatNewsDate(item.createdAt)}
-                  </time>
-                </div>
+              <Link href={`/news/${item._id}`} className="group block h-full">
+                <article className="h-full overflow-hidden">
+                  <div className="relative h-36 w-full bg-zinc-100 sm:h-40">
+                    {item.photoUrl?.trim() ? (
+                      <Image
+                        src={item.photoUrl}
+                        alt={item.title}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-[1.02]"
+                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#00112d] to-[#fd7209]/80" />
+                        <div className="absolute inset-0 flex items-center justify-center text-white/70">
+                          <ImageIcon className="h-16 w-16" strokeWidth={1.25} aria-hidden />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="py-3">
+                    <p className="dejavu-sans text-sm font-semibold text-zinc-900 line-clamp-2">
+                      {item.title}
+                    </p>
+                    <p className="arial-caps mt-2 text-[11px] text-zinc-600">
+                      {formatNewsDate(item.createdAt)}
+                    </p>
+                  </div>
                 </article>
               </Link>
             </li>
