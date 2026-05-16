@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useState } from "react";
 import Image from "next/image";
 import { ImagePlus } from "lucide-react";
 import { API_URL, type Category, type Player, type Season, type Team } from "@/lib/api";
@@ -24,6 +24,8 @@ type PlayerForm = {
   height: string;
   photo: string;
   photoKey: string;
+  idDocument: string;
+  idDocumentKey: string;
 };
 
 type TeamErrors = Partial<Record<keyof TeamForm, string>>;
@@ -48,12 +50,48 @@ const emptyPlayerForm: PlayerForm = {
   height: "",
   photo: "",
   photoKey: "",
+  idDocument: "",
+  idDocumentKey: "",
 };
 
 const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"] as const;
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+const REGISTER_TEAM_STORAGE_KEY = "kidscup-register-team";
+
+type StoredRegistration = {
+  team: Team;
+  players: Player[];
+  step: 1 | 2 | 3;
+};
+
+const readStoredRegistration = (): StoredRegistration | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(REGISTER_TEAM_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredRegistration;
+    if (!parsed?.team?._id) return null;
+    return {
+      team: parsed.team,
+      players: Array.isArray(parsed.players) ? parsed.players : [],
+      step: parsed.step === 3 ? 3 : parsed.step === 2 ? 2 : 1,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredRegistration = (data: StoredRegistration | null) => {
+  if (typeof window === "undefined") return;
+  if (!data) {
+    localStorage.removeItem(REGISTER_TEAM_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(REGISTER_TEAM_STORAGE_KEY, JSON.stringify(data));
+};
 
 export default function RegisterTeamPage() {
+  const [isSessionReady, setIsSessionReady] = useState(false);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [teamForm, setTeamForm] = useState<TeamForm>(emptyTeamForm);
   const [playerForm, setPlayerForm] = useState<PlayerForm>(emptyPlayerForm);
@@ -62,7 +100,6 @@ export default function RegisterTeamPage() {
   const [createdTeam, setCreatedTeam] = useState<Team | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [isLoadingSeasons, setIsLoadingSeasons] = useState(false);
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isSavingPlayer, setIsSavingPlayer] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -71,6 +108,8 @@ export default function RegisterTeamPage() {
   const [teamLogoPreview, setTeamLogoPreview] = useState("");
   const [isUploadingPlayerPhoto, setIsUploadingPlayerPhoto] = useState(false);
   const [playerPhotoPreview, setPlayerPhotoPreview] = useState("");
+  const [isUploadingIdDocument, setIsUploadingIdDocument] = useState(false);
+  const [idDocumentPreview, setIdDocumentPreview] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [teamErrors, setTeamErrors] = useState<TeamErrors>({});
@@ -88,11 +127,52 @@ export default function RegisterTeamPage() {
       : baseClassName;
   const errorTextClassName = "mt-1 block text-xs font-medium text-red-600";
 
+  const persistRegistration = (team: Team, nextPlayers: Player[], step: 1 | 2 | 3) => {
+    writeStoredRegistration({ team, players: nextPlayers, step });
+  };
+
+  const clearRegistrationSession = () => {
+    writeStoredRegistration(null);
+    setCreatedTeam(null);
+    setPlayers([]);
+    setCurrentStep(1);
+    setTeamForm(emptyTeamForm);
+    setPlayerForm(emptyPlayerForm);
+    setTeamLogoUrl("");
+    setTeamLogoKey("");
+    if (teamLogoPreview) URL.revokeObjectURL(teamLogoPreview);
+    setTeamLogoPreview("");
+    if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
+    setPlayerPhotoPreview("");
+    if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+    setIdDocumentPreview("");
+    setError(null);
+    setSuccess(null);
+  };
+
+  useLayoutEffect(() => {
+    const stored = readStoredRegistration();
+    if (stored?.team) {
+      setCreatedTeam(stored.team);
+      setPlayers(stored.players);
+      setCurrentStep(stored.step >= 2 ? stored.step : 2);
+      if (stored.step >= 2) {
+        setSuccess("გაგრძელება შენახული რეგისტრაციიდან.");
+      }
+    }
+    setIsSessionReady(true);
+  }, []);
+
   const validateTeamForm = () => {
     const nextErrors: TeamErrors = {};
     if (!teamForm.name.trim()) nextErrors.name = "გთხოვთ შეიყვანოთ გუნდის სახელი";
     if (!teamForm.ageCategory) nextErrors.ageCategory = "გთხოვთ აირჩიოთ ასაკობრივი კატეგორია";
-    if (!teamForm.season) nextErrors.season = "გთხოვთ აირჩიოთ სეზონი";
+    if (!teamForm.season) {
+      nextErrors.season =
+        teamForm.ageCategory && seasons.length === 0
+          ? "ამ კატეგორიისთვის სეზონი არ მოიძებნა"
+          : "სეზონი ვერ მოიძებნა";
+    }
     return nextErrors;
   };
 
@@ -133,20 +213,27 @@ export default function RegisterTeamPage() {
 
   useEffect(() => {
     const loadSeasons = async () => {
-      setIsLoadingSeasons(true);
+      if (!teamForm.ageCategory) {
+        setSeasons([]);
+        setTeamForm((prev) => ({ ...prev, season: "" }));
+        return;
+      }
       try {
-        const query = teamForm.ageCategory ? `?ageCategory=${encodeURIComponent(teamForm.ageCategory)}` : "";
+        const query = `?ageCategory=${encodeURIComponent(teamForm.ageCategory)}`;
         const res = await fetch(`${API_URL}/seasons${query}`, {
           headers: { "Content-Type": "application/json" },
         });
         if (!res.ok) throw new Error("სეზონების წამოღება ვერ მოხერხდა");
         const data = (await res.json()) as Season[];
         setSeasons(data);
+        setTeamForm((prev) => ({
+          ...prev,
+          season: data.length > 0 ? data[0]._id : "",
+        }));
+        setTeamErrors((prev) => ({ ...prev, season: undefined }));
       } catch (e) {
         const message = e instanceof Error ? e.message : "სეზონების ჩატვირთვა ვერ მოხერხდა";
         setError(message);
-      } finally {
-        setIsLoadingSeasons(false);
       }
     };
 
@@ -186,9 +273,11 @@ export default function RegisterTeamPage() {
             : "გუნდის შექმნა ვერ მოხერხდა";
         throw new Error(message);
       }
-      setCreatedTeam(data as Team);
+      const team = data as Team;
+      setCreatedTeam(team);
       setPlayers([]);
       setCurrentStep(2);
+      persistRegistration(team, [], 2);
       setSuccess(
         "გუნდი შექმნილია და ელოდება ადმინისტრატორის დამტკიცებას. საიტზე გამოჩნდება დამტკიცების შემდეგ. ახლა დაამატეთ მოთამაშეები.",
       );
@@ -303,6 +392,66 @@ export default function RegisterTeamPage() {
     setPlayerForm((prev) => ({ ...prev, photo: "", photoKey: "" }));
   };
 
+  const uploadPlayerIdDocument = async (file: File | null) => {
+    if (!file) return;
+    setError(null);
+    setSuccess(null);
+
+    if (!ACCEPTED_PHOTO_TYPES.includes(file.type as (typeof ACCEPTED_PHOTO_TYPES)[number])) {
+      setError("დოკუმენტის ფოტოს ტიპი უნდა იყოს png, jpg ან webp");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("დოკუმენტის ფოტოს ზომა არ უნდა აღემატებოდეს 4MB-ს");
+      return;
+    }
+
+    setIsUploadingIdDocument(true);
+    try {
+      const signedRes = await fetch(`${API_URL}/upload-url?type=${encodeURIComponent(file.type)}`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const signedData = (await signedRes.json()) as
+        | { uploadUrl: string; fileUrl: string; key: string; message?: string }
+        | { message?: string };
+      if (!signedRes.ok || !("uploadUrl" in signedData)) {
+        const message =
+          typeof signedData === "object" && signedData && "message" in signedData && signedData.message
+            ? signedData.message
+            : "დოკუმენტის ატვირთვის ლინკის მიღება ვერ მოხერხდა";
+        throw new Error(message);
+      }
+
+      const uploadRes = await fetch(signedData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("დოკუმენტის ატვირთვა ვერ მოხერხდა");
+
+      if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+      const previewUrl = URL.createObjectURL(file);
+      setIdDocumentPreview(previewUrl);
+      setPlayerForm((prev) => ({
+        ...prev,
+        idDocument: signedData.fileUrl,
+        idDocumentKey: signedData.key,
+      }));
+      setPlayerErrors((prev) => ({ ...prev, idDocumentKey: undefined }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "დოკუმენტის ატვირთვა ვერ მოხერხდა";
+      setError(message);
+    } finally {
+      setIsUploadingIdDocument(false);
+    }
+  };
+
+  const removePlayerIdDocument = () => {
+    if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+    setIdDocumentPreview("");
+    setPlayerForm((prev) => ({ ...prev, idDocument: "", idDocumentKey: "" }));
+  };
+
   const addPlayer = async (event: FormEvent) => {
     event.preventDefault();
     if (!createdTeam?._id) return;
@@ -322,6 +471,8 @@ export default function RegisterTeamPage() {
         height: playerForm.height ? Number(playerForm.height) : undefined,
         photo: playerForm.photo || undefined,
         photoKey: playerForm.photoKey || undefined,
+        idDocument: playerForm.idDocument || undefined,
+        idDocumentKey: playerForm.idDocumentKey || undefined,
         teamId: createdTeam._id,
       };
 
@@ -338,11 +489,18 @@ export default function RegisterTeamPage() {
             : "მოთამაშის დამატება ვერ მოხერხდა";
         throw new Error(message);
       }
-      setPlayers((prev) => [...prev, data as Player]);
+      const newPlayer = data as Player;
+      setPlayers((prev) => {
+        const nextPlayers = [...prev, newPlayer];
+        if (createdTeam) persistRegistration(createdTeam, nextPlayers, 2);
+        return nextPlayers;
+      });
       setPlayerForm(emptyPlayerForm);
       setPlayerErrors({});
       if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
       setPlayerPhotoPreview("");
+      if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+      setIdDocumentPreview("");
       setSuccess("მოთამაშე დაემატა.");
     } catch (e) {
       const message = e instanceof Error ? e.message : "მოთამაშის დამატება ვერ მოხერხდა";
@@ -363,17 +521,26 @@ export default function RegisterTeamPage() {
       return;
     }
     setCurrentStep(3);
+    if (createdTeam) persistRegistration(createdTeam, players, 3);
     setSuccess(
       "რეგისტრაციის მოთხოვნა მიღებულია. გუნდი ელოდება ადმინისტრატორის დამტკიცებას — დამტკიცების შემდეგ გამოჩნდება საჯარო საიტზე.",
     );
   };
+
+  if (!isSessionReady) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <p className="dejavu-sans text-sm text-zinc-600">იტვირთება...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-6">
         <h1 className="arial-caps text-2xl font-semibold text-zinc-900">გუნდის რეგისტრაცია</h1>
         <p className="mt-2 dejavu-sans text-sm text-zinc-600">
-          შეავსეთ გუნდის ინფორმაცია და შემდეგ დაამატეთ მოთამაშეები. მოთამაშის ფოტო სავალდებულო არ არის.
+          შეავსეთ გუნდის ინფორმაცია და შემდეგ დაამატეთ მოთამაშეები.
         </p>
       </div>
 
@@ -503,31 +670,6 @@ export default function RegisterTeamPage() {
               ))}
             </select>
             {teamErrors.ageCategory && <span className={errorTextClassName}>{teamErrors.ageCategory}</span>}
-          </label>
-
-            <label className="dejavu-sans text-sm text-zinc-700">
-            სეზონი *
-            <select
-              value={teamForm.season}
-              onChange={(e) => {
-                setTeamForm((prev) => ({ ...prev, season: e.target.value }));
-                setTeamErrors((prev) => ({ ...prev, season: undefined }));
-              }}
-              className={getFieldClassName(selectClassName, Boolean(teamErrors.season))}
-            >
-              <option value="">
-                {isLoadingSeasons
-                  ? "იტვირთება..."
-                  : seasons.length === 0
-                    ? "სეზონები არ მოიძებნა"
-                    : "აირჩიეთ სეზონი"}
-              </option>
-              {seasons.map((season) => (
-                <option key={season._id} value={season._id}>
-                  {season.name}
-                </option>
-              ))}
-            </select>
             {teamErrors.season && <span className={errorTextClassName}>{teamErrors.season}</span>}
           </label>
 
@@ -636,13 +778,13 @@ export default function RegisterTeamPage() {
             </label>
 
             <label className="dejavu-sans text-sm text-zinc-700">
-              პოზიცია (არასავალდებულო)
+              პოზიცია *
               <select
                 value={playerForm.position}
                 onChange={(e) => setPlayerForm((prev) => ({ ...prev, position: e.target.value }))}
                 className={selectClassName}
               >
-                <option value="">აირჩიეთ (არასავალდებულო)</option>
+                <option value="">აირჩიეთ</option>
                 <option value="PG">PG</option>
                 <option value="SG">SG</option>
                 <option value="SF">SF</option>
@@ -652,7 +794,7 @@ export default function RegisterTeamPage() {
             </label>
 
             <label className="dejavu-sans text-sm text-zinc-700">
-              დაბადების თარიღი
+              დაბადების თარიღი *
               <input
                 type="date"
                 value={playerForm.birthDate}
@@ -661,6 +803,75 @@ export default function RegisterTeamPage() {
               />
             </label>
 
+            <div className="sm:col-span-3">
+              <span className="dejavu-sans text-sm text-zinc-700">
+                პირადობა / დაბადების მოწმობის ფოტო *
+              </span>
+              <input
+                id="player-id-document-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={(e) => {
+                  void uploadPlayerIdDocument(e.target.files?.[0] ?? null);
+                  e.target.value = "";
+                }}
+                className="sr-only"
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <div className="relative h-20 w-28 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                  {idDocumentPreview ? (
+                    <Image
+                      src={idDocumentPreview}
+                      alt="ID document preview"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] text-zinc-400">
+                      დოკუმენტი არ არის
+                    </span>
+                  )}
+                </div>
+
+                <label
+                  htmlFor="player-id-document-upload"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-3 py-2 text-zinc-700 transition hover:border-[#00306d]/50 hover:bg-[#00306d]/5"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm">
+                    <ImagePlus className="h-5 w-5 text-[#00306d]" />
+                  </span>
+                  <span className="dejavu-sans text-sm">
+                    {isUploadingIdDocument
+                      ? "დოკუმენტი იტვირთება..."
+                      : playerForm.idDocumentKey
+                        ? "დოკუმენტის შეცვლა"
+                        : "დოკუმენტის ატვირთვა"}
+                  </span>
+                </label>
+
+                {playerForm.idDocumentKey && !isUploadingIdDocument && (
+                  <button
+                    type="button"
+                    onClick={removePlayerIdDocument}
+                    className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  >
+                    წაშლა
+                  </button>
+                )}
+              </div>
+              <span className="mt-1 block text-xs text-zinc-500">
+                {isUploadingIdDocument
+                  ? "დოკუმენტი იტვირთება..."
+                  : playerForm.idDocumentKey
+                    ? "დოკუმენტი ატვირთულია."
+                    : "ატვირთეთ პირადობა / დაბადების მოწმობის ფოტო · png, jpg, webp · მაქს. 4MB"}
+              </span>
+              {playerErrors.idDocumentKey && (
+                <span className={errorTextClassName}>{playerErrors.idDocumentKey}</span>
+              )}
+            </div>
+{/* 
             <label className="dejavu-sans text-sm text-zinc-700">
               სიმაღლე (სმ)
               <input
@@ -670,10 +881,10 @@ export default function RegisterTeamPage() {
                 onChange={(e) => setPlayerForm((prev) => ({ ...prev, height: e.target.value }))}
                 className={inputClassName}
               />
-            </label>
+            </label> */}
 
             <div className="sm:col-span-3">
-              <span className="dejavu-sans text-sm text-zinc-700">მოთამაშის ფოტო (მხოლოდ ერთი)</span>
+              <span className="dejavu-sans text-sm text-zinc-700">მოთამაშის ფოტო (მხოლოდ ერთი) *</span>
               <input
                 id="player-photo-upload"
                 type="file"
@@ -738,7 +949,7 @@ export default function RegisterTeamPage() {
 
             <div className="sm:col-span-3">
               <button
-                disabled={isSavingPlayer || isUploadingPlayerPhoto}
+                disabled={isSavingPlayer || isUploadingPlayerPhoto || isUploadingIdDocument}
                 type="submit"
                 className="rounded-xl bg-[#fd7209] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e56203] disabled:cursor-not-allowed disabled:opacity-70"
               >
@@ -824,6 +1035,16 @@ export default function RegisterTeamPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={clearRegistrationSession}
+              className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              ახალი გუნდის რეგისტრაცია
+            </button>
           </div>
         </section>
       )}

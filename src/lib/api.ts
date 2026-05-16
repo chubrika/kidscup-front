@@ -38,6 +38,7 @@ export type Player = {
   birthDate?: string;
   height?: number;
   photo?: string;
+  idDocument?: string;
   teamId:
     | { _id: string; name: string; logo?: string; city?: string }
     | string;
