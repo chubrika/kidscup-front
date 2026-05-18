@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useLayoutEffect, useState } from "react";
-import Image from "next/image";
-import { ImagePlus } from "lucide-react";
+import { BirthDatePicker } from "@/components/BirthDatePicker";
+import { AddedPlayersList } from "@/app/register-team/AddedPlayersList";
+import { ImageUploadField } from "@/app/register-team/ImageUploadField";
 import { API_URL, type Category, type Player, type Season, type Team } from "@/lib/api";
+import { PLAYER_POSITIONS, toBirthDateInputValue } from "@/app/register-team/utils";
 
 type TeamForm = {
   name: string;
@@ -114,18 +116,35 @@ export default function RegisterTeamPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [teamErrors, setTeamErrors] = useState<TeamErrors>({});
   const [playerErrors, setPlayerErrors] = useState<PlayerErrors>({});
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
 
-  const inputClassName =
-    "mt-2 w-full rounded-xl border border-zinc-300/90 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 hover:border-zinc-400 focus:border-[#00306d] focus:ring-4 focus:ring-[#00306d]/15";
-  const selectClassName =
-    "mt-2 w-full rounded-xl border border-zinc-300/90 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition hover:border-zinc-400 focus:border-[#00306d] focus:ring-4 focus:ring-[#00306d]/15";
   const sectionCardClassName =
-    "rounded-2xl border border-zinc-200/80 bg-white/95 p-5 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.35)] backdrop-blur sm:p-7";
+    "rounded-2xl border border-[#e8e2da] bg-white p-5 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.28)] sm:p-7";
+  const fieldClassName =
+    "mt-2 w-full rounded-xl border border-[#e8e2da] bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 hover:border-[#d9d0c6] focus:border-[#fd7209] focus:ring-4 focus:ring-[#fd7209]/15";
+  const selectClassName =
+    "mt-2 w-full appearance-none rounded-xl border border-[#e8e2da] bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition hover:border-[#d9d0c6] focus:border-[#fd7209] focus:ring-4 focus:ring-[#fd7209]/15";
+  const primaryButtonClassName =
+    "rounded-xl bg-[#fd7209] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-10px_rgba(253,114,9,0.9)] transition hover:-translate-y-0.5 hover:bg-[#e56203] disabled:cursor-not-allowed disabled:opacity-70";
   const getFieldClassName = (baseClassName: string, hasError: boolean) =>
     hasError
       ? `${baseClassName} border-red-500/90 hover:border-red-500 focus:border-red-500 focus:ring-red-100`
       : baseClassName;
   const errorTextClassName = "mt-1 block text-xs font-medium text-red-600";
+  const requiredMark = <span className="text-red-500">*</span>;
+  const resetPlayerFormState = () => {
+    setPlayerForm(emptyPlayerForm);
+    setPlayerErrors({});
+    setEditingPlayerId(null);
+    if (playerPhotoPreview && playerPhotoPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(playerPhotoPreview);
+    }
+    setPlayerPhotoPreview("");
+    if (idDocumentPreview && idDocumentPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(idDocumentPreview);
+    }
+    setIdDocumentPreview("");
+  };
 
   const persistRegistration = (team: Team, nextPlayers: Player[], step: 1 | 2 | 3) => {
     writeStoredRegistration({ team, players: nextPlayers, step });
@@ -137,7 +156,7 @@ export default function RegisterTeamPage() {
     setPlayers([]);
     setCurrentStep(1);
     setTeamForm(emptyTeamForm);
-    setPlayerForm(emptyPlayerForm);
+    resetPlayerFormState();
     setTeamLogoUrl("");
     setTeamLogoKey("");
     if (teamLogoPreview) URL.revokeObjectURL(teamLogoPreview);
@@ -187,6 +206,20 @@ export default function RegisterTeamPage() {
       if (Number.isNaN(parsedNumber) || parsedNumber < 0 || parsedNumber > 99) {
         nextErrors.number = "მოთამაშის ნომერი უნდა იყოს 0-99 დიაპაზონში";
       }
+    }
+    if (!playerForm.birthDate.trim()) {
+      nextErrors.birthDate = "გთხოვთ აირჩიოთ დაბადების თარიღი";
+    }
+    if (!playerForm.position.trim()) {
+      nextErrors.position = "გთხოვთ აირჩიოთ პოზიცია";
+    }
+    const hasPhoto = Boolean(playerForm.photoKey.trim() || playerForm.photo.trim());
+    const hasIdDocument = Boolean(playerForm.idDocumentKey.trim() || playerForm.idDocument.trim());
+    if (!hasPhoto) {
+      nextErrors.photoKey = "გთხოვთ ატვირთოთ მოთამაშის ფოტო";
+    }
+    if (!hasIdDocument) {
+      nextErrors.idDocumentKey = "გთხოვთ ატვირთოთ პირადობის ან დაბადების მოწმობის ფოტო";
     }
     return nextErrors;
   };
@@ -452,6 +485,66 @@ export default function RegisterTeamPage() {
     setPlayerForm((prev) => ({ ...prev, idDocument: "", idDocumentKey: "" }));
   };
 
+  const buildPlayerPayload = () => ({
+    firstName: playerForm.firstName.trim(),
+    lastName: playerForm.lastName.trim(),
+    number: Number(playerForm.number),
+    position: playerForm.position.trim(),
+    birthDate: playerForm.birthDate || undefined,
+    height: playerForm.height ? Number(playerForm.height) : undefined,
+    photo: playerForm.photo || undefined,
+    photoKey: playerForm.photoKey || undefined,
+    idDocument: playerForm.idDocument || undefined,
+    idDocumentKey: playerForm.idDocumentKey || undefined,
+    teamId: createdTeam!._id,
+  });
+
+  const startEditPlayer = (player: Player) => {
+    setError(null);
+    setSuccess(null);
+    setEditingPlayerId(player._id);
+    setPlayerForm({
+      firstName: player.firstName,
+      lastName: player.lastName,
+      number: String(player.number),
+      position: player.position ?? "",
+      birthDate: toBirthDateInputValue(player.birthDate),
+      height: player.height ? String(player.height) : "",
+      photo: player.photo ?? "",
+      photoKey: "",
+      idDocument: player.idDocument ?? "",
+      idDocumentKey: "",
+    });
+    setPlayerPhotoPreview(player.photo ?? "");
+    setIdDocumentPreview(player.idDocument ?? "");
+    setPlayerErrors({});
+  };
+
+  const deletePlayer = async (playerId: string) => {
+    if (!createdTeam?._id) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(`${API_URL}/players/${playerId}/register`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message ?? "მოთამაშის წაშლა ვერ მოხერხდა");
+      }
+      setPlayers((prev) => {
+        const nextPlayers = prev.filter((player) => player._id !== playerId);
+        persistRegistration(createdTeam, nextPlayers, 2);
+        return nextPlayers;
+      });
+      if (editingPlayerId === playerId) resetPlayerFormState();
+      setSuccess("მოთამაშე წაიშალა.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "მოთამაშის წაშლა ვერ მოხერხდა";
+      setError(message);
+    }
+  };
+
   const addPlayer = async (event: FormEvent) => {
     event.preventDefault();
     if (!createdTeam?._id) return;
@@ -462,48 +555,43 @@ export default function RegisterTeamPage() {
     if (Object.keys(nextPlayerErrors).length > 0) return;
     setIsSavingPlayer(true);
     try {
-      const payload = {
-        firstName: playerForm.firstName.trim(),
-        lastName: playerForm.lastName.trim(),
-        number: Number(playerForm.number),
-        position: playerForm.position.trim(),
-        birthDate: playerForm.birthDate || undefined,
-        height: playerForm.height ? Number(playerForm.height) : undefined,
-        photo: playerForm.photo || undefined,
-        photoKey: playerForm.photoKey || undefined,
-        idDocument: playerForm.idDocument || undefined,
-        idDocumentKey: playerForm.idDocumentKey || undefined,
-        teamId: createdTeam._id,
-      };
-
-      const res = await fetch(`${API_URL}/players`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const payload = buildPlayerPayload();
+      const isEditing = Boolean(editingPlayerId);
+      const res = await fetch(
+        isEditing ? `${API_URL}/players/${editingPlayerId}/register` : `${API_URL}/players`,
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       const data = (await res.json()) as Player | { message?: string };
       if (!res.ok) {
         const message =
           typeof data === "object" && data && "message" in data && data.message
             ? data.message
-            : "მოთამაშის დამატება ვერ მოხერხდა";
+            : isEditing
+              ? "მოთამაშის განახლება ვერ მოხერხდა"
+              : "მოთამაშის დამატება ვერ მოხერხდა";
         throw new Error(message);
       }
-      const newPlayer = data as Player;
+      const savedPlayer = data as Player;
       setPlayers((prev) => {
-        const nextPlayers = [...prev, newPlayer];
-        if (createdTeam) persistRegistration(createdTeam, nextPlayers, 2);
+        const nextPlayers = isEditing
+          ? prev.map((player) => (player._id === savedPlayer._id ? savedPlayer : player))
+          : [...prev, savedPlayer];
+        persistRegistration(createdTeam, nextPlayers, 2);
         return nextPlayers;
       });
-      setPlayerForm(emptyPlayerForm);
-      setPlayerErrors({});
-      if (playerPhotoPreview) URL.revokeObjectURL(playerPhotoPreview);
-      setPlayerPhotoPreview("");
-      if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
-      setIdDocumentPreview("");
-      setSuccess("მოთამაშე დაემატა.");
+      resetPlayerFormState();
+      setSuccess(isEditing ? "მოთამაშის მონაცემები განახლდა." : "მოთამაშე დაემატა.");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "მოთამაშის დამატება ვერ მოხერხდა";
+      const message =
+        e instanceof Error
+          ? e.message
+          : editingPlayerId
+            ? "მოთამაშის განახლება ვერ მოხერხდა"
+            : "მოთამაშის დამატება ვერ მოხერხდა";
       setError(message);
     } finally {
       setIsSavingPlayer(false);
@@ -555,7 +643,7 @@ export default function RegisterTeamPage() {
         </p>
       )}
 
-      <section className="mb-6 rounded-2xl border border-zinc-200/80 bg-white/95 p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.35)] sm:p-5">
+      <section className="mb-6 rounded-2xl border border-[#e8e2da] bg-white p-4 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.28)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             { id: 1, title: "გუნდის შექმნა" },
@@ -569,19 +657,19 @@ export default function RegisterTeamPage() {
                 key={step.id}
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
                   isActive
-                    ? "border-[#00306d]/30 bg-[#00306d]/5"
+                    ? "border-[#fd7209]/30 bg-[#fff8f2]"
                     : isDone
                       ? "border-emerald-200 bg-emerald-50/70"
-                      : "border-zinc-200 bg-zinc-50"
+                      : "border-[#e8e2da] bg-[#faf9f7]"
                 }`}
               >
                 <span
                   className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                     isActive
-                      ? "bg-[#00306d] text-white"
+                      ? "bg-[#fd7209] text-white"
                       : isDone
                         ? "bg-emerald-600 text-white"
-                        : "bg-zinc-200 text-zinc-700"
+                        : "bg-[#eef4fc] text-zinc-600"
                   }`}
                 >
                   {step.id}
@@ -595,146 +683,136 @@ export default function RegisterTeamPage() {
 
       {currentStep === 1 && (
         <section className={sectionCardClassName}>
-        <h2 className="arial-caps mb-1 text-lg font-semibold text-zinc-900">1) გუნდის ინფორმაცია</h2>
-        <p className="mb-5 dejavu-sans text-xs text-zinc-500">აუცილებელი ველები მონიშნულია ვარსკვლავით (*).</p>
-        <form onSubmit={createTeam} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="dejavu-sans text-sm text-zinc-700">
-            გუნდის სახელი *
-            <input
-              placeholder="მაგ: Kidscup თბილისი"
-              value={teamForm.name}
-              onChange={(e) => {
-                setTeamForm((prev) => ({ ...prev, name: e.target.value }));
-                setTeamErrors((prev) => ({ ...prev, name: undefined }));
-              }}
-              className={getFieldClassName(inputClassName, Boolean(teamErrors.name))}
-            />
-            {teamErrors.name && <span className={errorTextClassName}>{teamErrors.name}</span>}
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            ქალაქი
-            <input
-              placeholder="მაგ: თბილისი"
-              value={teamForm.city}
-              onChange={(e) => setTeamForm((prev) => ({ ...prev, city: e.target.value }))}
-              className={inputClassName}
-            />
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            მთავარი მწვრთნელი
-            <input
-              placeholder="სახელი და გვარი"
-              value={teamForm.coachName}
-              onChange={(e) => setTeamForm((prev) => ({ ...prev, coachName: e.target.value }))}
-              className={inputClassName}
-            />
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            ასისტენტი მწვრთნელი (არასავალდებულო)
-            <input
-              placeholder="სახელი და გვარი"
-              value={teamForm.assistantCoachName}
-              onChange={(e) => setTeamForm((prev) => ({ ...prev, assistantCoachName: e.target.value }))}
-              className={inputClassName}
-            />
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            ექიმი (არასავალდებულო)
-            <input
-              placeholder="სახელი და გვარი"
-              value={teamForm.doctor}
-              onChange={(e) => setTeamForm((prev) => ({ ...prev, doctor: e.target.value }))}
-              className={inputClassName}
-            />
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            ასაკობრივი კატეგორია *
-            <select
-              value={teamForm.ageCategory}
-              onChange={(e) => {
-                setTeamForm((prev) => ({ ...prev, ageCategory: e.target.value, season: "" }));
-                setTeamErrors((prev) => ({ ...prev, ageCategory: undefined, season: undefined }));
-              }}
-              className={getFieldClassName(selectClassName, Boolean(teamErrors.ageCategory))}
-            >
-              <option value="">{isLoadingCategories ? "იტვირთება..." : "აირჩიეთ კატეგორია"}</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {teamErrors.ageCategory && <span className={errorTextClassName}>{teamErrors.ageCategory}</span>}
-            {teamErrors.season && <span className={errorTextClassName}>{teamErrors.season}</span>}
-          </label>
-
-          <label className="dejavu-sans text-sm text-zinc-700">
-            გუნდის ლოგო
-            <input
-              id="team-logo-upload"
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={(e) => void uploadTeamLogo(e.target.files?.[0] ?? null)}
-              className="sr-only"
-            />
-            <label
-              htmlFor="team-logo-upload"
-              className="mt-2 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 p-3 text-zinc-700 transition hover:border-[#00306d]/50 hover:bg-[#00306d]/5"
-            >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-                <ImagePlus className="h-5 w-5 text-[#00306d]" />
-              </span>
-              <span className="dejavu-sans text-sm">
-                {isUploadingLogo ? "ლოგო იტვირთება..." : "დააჭირე და ატვირთე გუნდის ლოგო"}
-              </span>
-            </label>
-            <span className="mt-1 block text-xs text-zinc-500">
-              {isUploadingLogo
-                ? "ლოგო იტვირთება..."
-                : teamLogoKey
-                  ? `ატვირთულია: ${teamLogoKey}`
-                  : "მხარდაჭერილი ფორმატები: png, jpg, webp"}
-            </span>
-            {teamLogoPreview && (
-              <Image
-                src={teamLogoPreview}
-                alt="Team logo preview"
-                width={80}
-                height={80}
-                className="mt-2 h-20 w-20 rounded-md border border-zinc-200 object-cover"
-                unoptimized
+          <h2 className="arial-caps mb-1 text-lg font-semibold text-zinc-900">1) გუნდის ინფორმაცია</h2>
+          <p className="mb-6 dejavu-sans text-xs text-zinc-500">
+            აუცილებელი ველები მონიშნულია ვარსკვლავით (*).
+          </p>
+          <form onSubmit={createTeam} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <label className="dejavu-sans text-sm text-zinc-700">
+              გუნდის სახელი {requiredMark}
+              <input
+                placeholder="მაგ: Kidscup თბილისი"
+                value={teamForm.name}
+                onChange={(e) => {
+                  setTeamForm((prev) => ({ ...prev, name: e.target.value }));
+                  setTeamErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                className={getFieldClassName(fieldClassName, Boolean(teamErrors.name))}
               />
-            )}
-          </label>
+              {teamErrors.name && <span className={errorTextClassName}>{teamErrors.name}</span>}
+            </label>
 
-          <div className="sm:col-span-2">
-            <button
-              disabled={isSavingTeam || isUploadingLogo}
-              type="submit"
-              className="rounded-md dejavu-sans cursor-pointer bg-[#00306d] px-5 py-2.5 text-sm font-normal text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#002554] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSavingTeam ? "ინახება..." : "გუნდის შექმნა"}
-            </button>
-          </div>
-        </form>
-      </section>
+            <label className="dejavu-sans text-sm text-zinc-700">
+              ქალაქი
+              <input
+                placeholder="მაგ: თბილისი"
+                value={teamForm.city}
+                onChange={(e) => setTeamForm((prev) => ({ ...prev, city: e.target.value }))}
+                className={fieldClassName}
+              />
+            </label>
+
+            <label className="dejavu-sans text-sm text-zinc-700">
+              მთავარი მწვრთნელი
+              <input
+                placeholder="სახელი და გვარი"
+                value={teamForm.coachName}
+                onChange={(e) => setTeamForm((prev) => ({ ...prev, coachName: e.target.value }))}
+                className={fieldClassName}
+              />
+            </label>
+
+            <label className="dejavu-sans text-sm text-zinc-700">
+              ასისტენტი მწვრთნელი (არასავალდებულო)
+              <input
+                placeholder="სახელი და გვარი"
+                value={teamForm.assistantCoachName}
+                onChange={(e) => setTeamForm((prev) => ({ ...prev, assistantCoachName: e.target.value }))}
+                className={fieldClassName}
+              />
+            </label>
+
+            <label className="dejavu-sans text-sm text-zinc-700">
+              ექიმი (არასავალდებულო)
+              <input
+                placeholder="სახელი და გვარი"
+                value={teamForm.doctor}
+                onChange={(e) => setTeamForm((prev) => ({ ...prev, doctor: e.target.value }))}
+                className={fieldClassName}
+              />
+            </label>
+
+            <label className="dejavu-sans text-sm text-zinc-700">
+              ასაკობრივი კატეგორია {requiredMark}
+              <select
+                value={teamForm.ageCategory}
+                onChange={(e) => {
+                  setTeamForm((prev) => ({ ...prev, ageCategory: e.target.value, season: "" }));
+                  setTeamErrors((prev) => ({ ...prev, ageCategory: undefined, season: undefined }));
+                }}
+                className={getFieldClassName(selectClassName, Boolean(teamErrors.ageCategory))}
+              >
+                <option value="">{isLoadingCategories ? "იტვირთება..." : "აირჩიეთ კატეგორია"}</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {teamErrors.ageCategory && <span className={errorTextClassName}>{teamErrors.ageCategory}</span>}
+              {teamErrors.season && <span className={errorTextClassName}>{teamErrors.season}</span>}
+            </label>
+
+            <div className="sm:col-span-2">
+              <ImageUploadField
+                label="გუნდის ლოგო"
+                inputId="team-logo-upload"
+                previewUrl={teamLogoPreview}
+                uploadLabel="ლოგოს ატვირთვა"
+                uploadingLabel="ლოგო იტვირთება..."
+                changeLabel="ლოგოს შეცვლა"
+                previewClassName="h-24 w-24"
+                isUploading={isUploadingLogo}
+                onFileSelect={(file) => void uploadTeamLogo(file)}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <button
+                disabled={isSavingTeam || isUploadingLogo}
+                type="submit"
+                className={`dejavu-sans ${primaryButtonClassName}`}
+              >
+                {isSavingTeam ? "ინახება..." : "გუნდის შექმნა"}
+              </button>
+            </div>
+          </form>
+        </section>
       )}
 
       {currentStep === 2 && createdTeam && (
         <section className={`mt-6 ${sectionCardClassName}`}>
           <h2 className="arial-caps mb-1 text-lg font-semibold text-zinc-900">2) მოთამაშეები</h2>
-          <p className="mb-4 text-sm text-zinc-600 dejavu-sans">
+          <p className="mb-6 text-sm text-zinc-600 dejavu-sans">
             გუნდი: <span className="font-semibold text-zinc-800">{createdTeam.name}</span>
           </p>
 
-          <form onSubmit={addPlayer} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {editingPlayerId && (
+            <p className="mb-4 rounded-xl border border-[#fd7209]/25 bg-[#fff8f2] px-3.5 py-2.5 text-sm text-[#c45f08] dejavu-sans">
+              მოთამაშის რედაქტირება — შეინახეთ ცვლილებები ან{" "}
+              <button
+                type="button"
+                onClick={resetPlayerFormState}
+                className="font-semibold underline underline-offset-2"
+              >
+                გააუქმეთ
+              </button>
+            </p>
+          )}
+
+          <form onSubmit={addPlayer} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <label className="dejavu-sans text-sm text-zinc-700">
-              სახელი *
+              სახელი {requiredMark}
               <input
                 placeholder="სახელი"
                 value={playerForm.firstName}
@@ -742,13 +820,13 @@ export default function RegisterTeamPage() {
                   setPlayerForm((prev) => ({ ...prev, firstName: e.target.value }));
                   setPlayerErrors((prev) => ({ ...prev, firstName: undefined }));
                 }}
-                className={getFieldClassName(inputClassName, Boolean(playerErrors.firstName))}
+                className={getFieldClassName(fieldClassName, Boolean(playerErrors.firstName))}
               />
               {playerErrors.firstName && <span className={errorTextClassName}>{playerErrors.firstName}</span>}
             </label>
 
             <label className="dejavu-sans text-sm text-zinc-700">
-              გვარი *
+              გვარი {requiredMark}
               <input
                 placeholder="გვარი"
                 value={playerForm.lastName}
@@ -756,13 +834,13 @@ export default function RegisterTeamPage() {
                   setPlayerForm((prev) => ({ ...prev, lastName: e.target.value }));
                   setPlayerErrors((prev) => ({ ...prev, lastName: undefined }));
                 }}
-                className={getFieldClassName(inputClassName, Boolean(playerErrors.lastName))}
+                className={getFieldClassName(fieldClassName, Boolean(playerErrors.lastName))}
               />
               {playerErrors.lastName && <span className={errorTextClassName}>{playerErrors.lastName}</span>}
             </label>
 
-            <label className="dejavu-sans text-sm text-zinc-700">
-              ნომერი *
+            <label className="dejavu-sans text-sm text-zinc-700 sm:col-span-2 lg:col-span-1">
+              ნომერი {requiredMark}
               <input
                 min={0}
                 max={99}
@@ -772,231 +850,96 @@ export default function RegisterTeamPage() {
                   setPlayerForm((prev) => ({ ...prev, number: e.target.value }));
                   setPlayerErrors((prev) => ({ ...prev, number: undefined }));
                 }}
-                className={getFieldClassName(inputClassName, Boolean(playerErrors.number))}
+                className={getFieldClassName(fieldClassName, Boolean(playerErrors.number))}
               />
               {playerErrors.number && <span className={errorTextClassName}>{playerErrors.number}</span>}
             </label>
 
             <label className="dejavu-sans text-sm text-zinc-700">
-              პოზიცია *
+              პოზიცია {requiredMark}
               <select
                 value={playerForm.position}
-                onChange={(e) => setPlayerForm((prev) => ({ ...prev, position: e.target.value }))}
-                className={selectClassName}
+                onChange={(e) => {
+                  setPlayerForm((prev) => ({ ...prev, position: e.target.value }));
+                  setPlayerErrors((prev) => ({ ...prev, position: undefined }));
+                }}
+                className={getFieldClassName(selectClassName, Boolean(playerErrors.position))}
               >
                 <option value="">აირჩიეთ</option>
-                <option value="PG">PG</option>
-                <option value="SG">SG</option>
-                <option value="SF">SF</option>
-                <option value="PF">PF</option>
-                <option value="C">C</option>
+                {PLAYER_POSITIONS.map((position) => (
+                  <option key={position.code} value={position.code}>
+                    {position.code} - {position.label}
+                  </option>
+                ))}
               </select>
+              {playerErrors.position && <span className={errorTextClassName}>{playerErrors.position}</span>}
             </label>
 
-            <label className="dejavu-sans text-sm text-zinc-700">
-              დაბადების თარიღი *
-              <input
-                type="date"
+            <div className="dejavu-sans text-sm text-zinc-700">
+              დაბადების თარიღი {requiredMark}
+              <BirthDatePicker
                 value={playerForm.birthDate}
-                onChange={(e) => setPlayerForm((prev) => ({ ...prev, birthDate: e.target.value }))}
-                className={inputClassName}
-              />
-            </label>
-
-            <div className="sm:col-span-3">
-              <span className="dejavu-sans text-sm text-zinc-700">
-                პირადობა / დაბადების მოწმობის ფოტო *
-              </span>
-              <input
-                id="player-id-document-upload"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                onChange={(e) => {
-                  void uploadPlayerIdDocument(e.target.files?.[0] ?? null);
-                  e.target.value = "";
+                onChange={(birthDate) => {
+                  setPlayerForm((prev) => ({ ...prev, birthDate }));
+                  setPlayerErrors((prev) => ({ ...prev, birthDate: undefined }));
                 }}
-                className="sr-only"
+                hasError={Boolean(playerErrors.birthDate)}
               />
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <div className="relative h-20 w-28 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-                  {idDocumentPreview ? (
-                    <Image
-                      src={idDocumentPreview}
-                      alt="ID document preview"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] text-zinc-400">
-                      დოკუმენტი არ არის
-                    </span>
-                  )}
-                </div>
-
-                <label
-                  htmlFor="player-id-document-upload"
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-3 py-2 text-zinc-700 transition hover:border-[#00306d]/50 hover:bg-[#00306d]/5"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm">
-                    <ImagePlus className="h-5 w-5 text-[#00306d]" />
-                  </span>
-                  <span className="dejavu-sans text-sm">
-                    {isUploadingIdDocument
-                      ? "დოკუმენტი იტვირთება..."
-                      : playerForm.idDocumentKey
-                        ? "დოკუმენტის შეცვლა"
-                        : "დოკუმენტის ატვირთვა"}
-                  </span>
-                </label>
-
-                {playerForm.idDocumentKey && !isUploadingIdDocument && (
-                  <button
-                    type="button"
-                    onClick={removePlayerIdDocument}
-                    className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-                  >
-                    წაშლა
-                  </button>
-                )}
-              </div>
-              <span className="mt-1 block text-xs text-zinc-500">
-                {isUploadingIdDocument
-                  ? "დოკუმენტი იტვირთება..."
-                  : playerForm.idDocumentKey
-                    ? "დოკუმენტი ატვირთულია."
-                    : "ატვირთეთ პირადობა / დაბადების მოწმობის ფოტო · png, jpg, webp · მაქს. 4MB"}
-              </span>
-              {playerErrors.idDocumentKey && (
-                <span className={errorTextClassName}>{playerErrors.idDocumentKey}</span>
+              {playerErrors.birthDate && (
+                <span className={errorTextClassName}>{playerErrors.birthDate}</span>
               )}
             </div>
-{/* 
-            <label className="dejavu-sans text-sm text-zinc-700">
-              სიმაღლე (სმ)
-              <input
-                min={0}
-                type="number"
-                value={playerForm.height}
-                onChange={(e) => setPlayerForm((prev) => ({ ...prev, height: e.target.value }))}
-                className={inputClassName}
+
+            <div className="sm:col-span-2 lg:col-span-3">
+              <ImageUploadField
+                label={<>პირადობის / დაბადების მოწმობის ფოტო {requiredMark}</>}
+                inputId="player-id-document-upload"
+                previewUrl={idDocumentPreview}
+                uploadLabel="დოკუმენტის ატვირთვა"
+                uploadingLabel="დოკუმენტი იტვირთება..."
+                changeLabel="დოკუმენტის შეცვლა"
+                previewClassName="h-24 w-32"
+                isUploading={isUploadingIdDocument}
+                error={playerErrors.idDocumentKey}
+                onFileSelect={(file) => void uploadPlayerIdDocument(file)}
               />
-            </label> */}
-
-            <div className="sm:col-span-3">
-              <span className="dejavu-sans text-sm text-zinc-700">მოთამაშის ფოტო (მხოლოდ ერთი) *</span>
-              <input
-                id="player-photo-upload"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                onChange={(e) => {
-                  void uploadPlayerPhoto(e.target.files?.[0] ?? null);
-                  e.target.value = "";
-                }}
-                className="sr-only"
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <ImageUploadField
+                label={<>მოთამაშის ფოტო (მხოლოდ ერთი) {requiredMark}</>}
+                inputId="player-photo-upload"
+                previewUrl={playerPhotoPreview}
+                uploadLabel="ფოტოს ატვირთვა"
+                uploadingLabel="ფოტო იტვირთება..."
+                changeLabel="ფოტოს შეცვლა"
+                previewClassName="h-24 w-24"
+                isUploading={isUploadingPlayerPhoto}
+                error={playerErrors.photoKey}
+                onFileSelect={(file) => void uploadPlayerPhoto(file)}
               />
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-                  {playerPhotoPreview ? (
-                    <Image
-                      src={playerPhotoPreview}
-                      alt="Player photo preview"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
-                      ფოტო არ არის
-                    </span>
-                  )}
-                </div>
-
-                <label
-                  htmlFor="player-photo-upload"
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-3 py-2 text-zinc-700 transition hover:border-[#00306d]/50 hover:bg-[#00306d]/5"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm">
-                    <ImagePlus className="h-5 w-5 text-[#00306d]" />
-                  </span>
-                  <span className="dejavu-sans text-sm">
-                    {isUploadingPlayerPhoto
-                      ? "ფოტო იტვირთება..."
-                      : playerForm.photoKey
-                        ? "ფოტოს შეცვლა"
-                        : "ფოტოს ატვირთვა"}
-                  </span>
-                </label>
-
-                {playerForm.photoKey && !isUploadingPlayerPhoto && (
-                  <button
-                    type="button"
-                    onClick={removePlayerPhoto}
-                    className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-                  >
-                    წაშლა
-                  </button>
-                )}
-              </div>
-              <span className="mt-1 block text-xs text-zinc-500">
-                {isUploadingPlayerPhoto
-                  ? "ფოტო იტვირთება..."
-                  : playerForm.photoKey
-                    ? "ფოტო ატვირთულია. ახალი ფოტოს არჩევა შეცვლის წინა ფოტოს."
-                    : "მხარდაჭერილი ფორმატები: png, jpg, webp · მაქს. 4MB · ერთი ფოტო თითო მოთამაშეზე"}
-              </span>
             </div>
 
             <div className="sm:col-span-3">
               <button
                 disabled={isSavingPlayer || isUploadingPlayerPhoto || isUploadingIdDocument}
                 type="submit"
-                className="rounded-xl bg-[#fd7209] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e56203] disabled:cursor-not-allowed disabled:opacity-70"
+                className={primaryButtonClassName}
               >
-                {isSavingPlayer ? "ინახება..." : "მოთამაშის დამატება"}
+                {isSavingPlayer
+                  ? "ინახება..."
+                  : editingPlayerId
+                    ? "მოთამაშის შენახვა"
+                    : "მოთამაშის დამატება"}
               </button>
             </div>
           </form>
 
-          <div className="mt-5">
-            {players.length === 0 ? (
-              <p className="text-sm text-zinc-600 dejavu-sans">მოთამაშეები ჯერ არ არის დამატებული.</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {players.map((player) => (
-                  <article
-                    key={player._id}
-                    className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                  >
-                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white">
-                      {player.photo ? (
-                        <Image
-                          src={player.photo}
-                          alt={`${player.firstName} ${player.lastName}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
-                          ფოტო არ არის
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-semibold text-zinc-900">
-                        {player.firstName} {player.lastName}
-                      </h3>
-                      <div className="mt-1 space-y-0.5 text-sm text-zinc-700">
-                        <p>#{player.number}</p>
-                        <p>პოზიცია: {player.position || "—"}</p>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
+          <AddedPlayersList
+            players={players}
+            editingPlayerId={editingPlayerId}
+            onEdit={startEditPlayer}
+            onDelete={(playerId) => void deletePlayer(playerId)}
+          />
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
@@ -1018,13 +961,13 @@ export default function RegisterTeamPage() {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="rounded-xl border border-[#e8e2da] bg-[#faf9f7] p-4">
               <h3 className="mb-2 text-sm font-semibold text-zinc-900">გუნდის ინფორმაცია</h3>
               <p className="text-sm text-zinc-700">სახელი: {createdTeam.name}</p>
               <p className="text-sm text-zinc-700">ქალაქი: {createdTeam.city || "—"}</p>
               <p className="text-sm text-zinc-700">მთავარი მწვრთნელი: {createdTeam.coachName || "—"}</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="rounded-xl border border-[#e8e2da] bg-[#faf9f7] p-4">
               <h3 className="mb-2 text-sm font-semibold text-zinc-900">მოთამაშეები</h3>
               <p className="text-sm text-zinc-700">სულ დამატებული: {players.length}</p>
               <div className="mt-2 space-y-1 text-sm text-zinc-700">
@@ -1041,7 +984,7 @@ export default function RegisterTeamPage() {
             <button
               type="button"
               onClick={clearRegistrationSession}
-              className="dejavu-sans rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="dejavu-sans rounded-xl border border-[#e8e2da] bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-[#d9d0c6] hover:bg-[#faf9f7]"
             >
               ახალი გუნდის რეგისტრაცია
             </button>
