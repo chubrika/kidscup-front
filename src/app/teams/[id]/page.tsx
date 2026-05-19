@@ -434,6 +434,16 @@ export default async function TeamDetailPage({
                   <p className="mt-1 dejavu-sans text-sm text-white/90">
                     {team.city || "—"} • {team.ageCategory?.name || "—"}
                   </p>
+                  <div className="mt-2 space-y-0.5 dejavu-sans text-sm text-white/90">
+                    <p>
+                      <span className="text-white/60">მწვრთნელი:</span>{" "}
+                      {team.coachName || "—"}
+                    </p>
+                    <p>
+                      <span className="text-white/60">მწვრთნელის ასისტენტი:</span>{" "}
+                      {team.assistantCoachName || "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

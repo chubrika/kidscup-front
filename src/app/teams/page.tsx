@@ -65,8 +65,14 @@ export default async function TeamsPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">კატეგორია</span>
+                    <span className="text-zinc-500">მწვრთნელის ასისტენტი</span>
                     <span className="max-w-[65%] truncate font-medium text-zinc-900">
+                      {team.assistantCoachName || "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-500">კატეგორია</span>
+                    <span className="max-w-[65%] truncate font-medium text-zinc-900 arial-caps">
                       {team.ageCategory?.name || "—"}
                     </span>
                   </div>

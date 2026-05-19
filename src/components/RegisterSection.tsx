@@ -14,7 +14,7 @@ export function RegisterSection({ href = "/register-team" }: RegisterSectionProp
              მზად ხართ თასის მოსაგებად?
             </h2>
             <p className="mt-2 dejavu-sans text-sm leading-relaxed text-white/80">
-            ტურნირზე განაცხადების მიღება 5 აპრილს მთავრდება. შემოუერთდით ახალგაზრდული სპორტსმენების ტურნირზე.            </p>
+            შემოუერთდით ახალგაზრდულ საკალათბურთო ტურნირს Tbilisi Kids Cup. მოითხოვეთ გუნდის რეგისტრაცია და დაამატეთ მოთამაშეები.        </p>
           </div>
 
           <div className="flex sm:justify-end">
