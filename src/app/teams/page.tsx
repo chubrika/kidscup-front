@@ -36,7 +36,7 @@ export default async function TeamsPage() {
                 className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex items-center gap-3 border-b border-zinc-200 bg-gradient-to-r from-[#00306d] to-[#004896] p-4">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10">
+                  <div className="flex h-14 w-14 items-center justify-center min-w-[56px] overflow-hidden rounded-xl border border-white/20 bg-white/10">
                     {team.logo ? (
                       <Image
                         src={team.logo}
@@ -53,7 +53,7 @@ export default async function TeamsPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate text-lg font-semibold text-white">{team.name}</h2>
+                    <h2 className="truncate text-lg font-semibold text-white text-wrap">{team.name}</h2>
                     <p className="dejavu-sans text-sm text-white/85">{team.city || "—"}</p>
                   </div>
                 </div>
@@ -66,7 +66,7 @@ export default async function TeamsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-500">მწვრთნელის ასისტენტი</span>
-                    <span className="max-w-[65%] truncate font-medium text-zinc-900">
+                    <span className="max-w-[65%] truncate font-medium text-zinc-900 text-wrap text-right">
                       {team.assistantCoachName || "—"}
                     </span>
                   </div>

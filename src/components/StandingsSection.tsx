@@ -24,6 +24,14 @@ function normalizeTeamId(teamId: StandingRow["teamId"]): string {
   return String(raw);
 }
 
+function groupsToDisplay(standingsGroups: StandingsGroup[]): StandingsGroup[] {
+  const withGroup = standingsGroups
+    .filter((g) => g.groupId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  if (withGroup.length > 0) return withGroup;
+  return standingsGroups;
+}
+
 export function StandingsSection({ categories }: StandingsSectionProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categories[0]?._id ?? null
@@ -36,7 +44,6 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
     let cancelled = false;
     const load = async () => {
       const data = await fetchStandings(selectedCategoryId);
-      console.log(data);
       if (!cancelled) setStandingsGroups(data);
     };
     queueMicrotask(() => {
@@ -96,68 +103,75 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
             {standingsGroups.length === 0 ? (
               <p className="px-3 py-3 text-zinc-500 text-xs text-center">ამ კატეგორიაში ცხრილი ჯერ არ არის</p>
             ) : (
-              standingsGroups.map((group) => (
-                <div key={group.categoryId} className="mb-0 last:mb-0">
-                  {standingsGroups.length > 1 && (
-                    <h3 className="px-3 pt-2.5 pb-1 text-xs font-semibold text-zinc-500 arial-caps tracking-wide">
-                      {group.categoryName}
-                    </h3>
-                  )}
-                  <table className="w-full dejavu-sans text-xs">
-                    <thead>
-                      <tr className="border-b border-white/10  text-white">
-                        <th className="w-6 py-3 pl-3 text-center font-normal">#</th>
-                        <th className="min-w-0 py-3 pl-1.5 text-left font-normal">გუნდი</th>
-                        <th className="w-7 py-3 text-center font-normal">თ</th>
-                        <th className="w-7 py-3 text-center font-normal">ს</th>
-                        <th className="w-8 py-3 pr-3 text-center font-normal">ქ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.standings.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-4 text-center text-zinc-500 text-xs">
-                            ამ კატეგორიაში გუნდები ჯერ არ არის
-                          </td>
+              <>
+                {groupsToDisplay(standingsGroups).map((group, groupIndex) => (
+                  <div
+                    key={group.groupId ?? group.categoryId ?? groupIndex}
+                    className={groupIndex > 0 ? "border-t border-white/10" : ""}
+                  >
+                    {(group.groupName || group.categoryName) && (
+                      <h3 className="px-3 pt-2.5 pb-1 text-xs font-semibold text-[#fd7209] arial-caps tracking-wide">
+                        {group.groupName ?? group.categoryName}
+                      </h3>
+                    )}
+                    <table className="w-full dejavu-sans text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-white">
+                          <th className="w-6 py-3 pl-3 text-center font-normal">#</th>
+                          <th className="min-w-0 py-3 pl-1.5 text-left font-normal">გუნდი</th>
+                          <th className="w-7 py-3 text-center font-normal">თ</th>
+                          <th className="w-7 py-3 text-center font-normal">ს</th>
+                          <th className="w-8 py-3 pr-3 text-center font-normal">ქ</th>
                         </tr>
-                      ) : (
-                        group.standings.map((row, index) => (
-                          <tr
-                            key={normalizeTeamId(row.teamId)}
-                            className="border-b border-white/10 hover:bg-white/5 transition-colors"
-                          >
-                            <td
-                              className={`py-3 pl-3 text-center font-medium italic arial-caps tabular-nums ${
-                                index === 0 ? "text-[#fd7209]" : "text-white/40"
-                              }`}
-                            >
-                              {index + 1}
-                            </td>
-                            <td className="py-3 pl-1.5 font-medium text-white truncate max-w-[140px]">
-                              {row.teamName}
-                            </td>
-                            <td className="py-3 text-center text-white/40 tabular-nums">{row.played}</td>
-                            <td className="py-3 text-center text-white/40 tabular-nums">{row.pointsDiff}</td>
-                            <td className={`py-3 pr-3 text-center font-semibold tabular-nums ${
-                                index === 0 ? "text-[#fd7209]" : "text-white"
-                              }`}>
-                              {row.points}
+                      </thead>
+                      <tbody>
+                        {group.standings.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-4 text-center text-zinc-500 text-xs">
+                              ცხრილი ცარიელია
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                  <div className="px-3 py-3 flex justify-center border-t border-white/10">
-                    <Link
-                      href="/league"
-                      className="px-4 py-2 text-white text-center bg-white/10 py-1 rounded-lg font-label text-[12px] font-normal hover:bg-white/20 transition-colors arial-caps tracking-widest"
-                    >
-                      სრული ცხრილი
-                    </Link>
+                        ) : (
+                          group.standings.map((row, index) => (
+                            <tr
+                              key={`${group.groupId ?? group.categoryId}-${normalizeTeamId(row.teamId)}`}
+                              className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                            >
+                              <td
+                                className={`py-3 pl-3 text-center font-medium italic arial-caps tabular-nums ${
+                                  index === 0 ? "text-[#fd7209]" : "text-white/40"
+                                }`}
+                              >
+                                {index + 1}
+                              </td>
+                              <td className="py-3 pl-1.5 font-medium text-white truncate max-w-[140px]">
+                                {row.teamName}
+                              </td>
+                              <td className="py-3 text-center text-white/40 tabular-nums">{row.played}</td>
+                              <td className="py-3 text-center text-white/40 tabular-nums">{row.pointsDiff}</td>
+                              <td
+                                className={`py-3 pr-3 text-center font-semibold tabular-nums ${
+                                  index === 0 ? "text-[#fd7209]" : "text-white"
+                                }`}
+                              >
+                                {row.points}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
+                ))}
+                <div className="px-3 py-3 flex justify-center border-t border-white/10">
+                  <Link
+                    href="/league"
+                    className="px-4 py-2 text-white text-center bg-white/10 py-1 rounded-lg font-label text-[12px] font-normal hover:bg-white/20 transition-colors arial-caps tracking-widest"
+                  >
+                    სრული ცხრილი
+                  </Link>
                 </div>
-              ))
+              </>
             )}
           </>
         )}

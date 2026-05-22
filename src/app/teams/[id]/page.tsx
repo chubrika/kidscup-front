@@ -574,7 +574,7 @@ export default async function TeamDetailPage({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center mt-[10px]">
                       <span className="text-xs font-semibold dejavu-sans text-zinc-600">
                         {nextGame.match.location || "—"}
                       </span>

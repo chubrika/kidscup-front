@@ -63,6 +63,9 @@ export type Match = {
   status: MatchStatus;
   scoreHome?: number;
   scoreAway?: number;
+  season?: string | Season;
+  group?: Group | string;
+  round?: Round | string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -113,9 +116,31 @@ export type StandingRow = {
 };
 
 export type StandingsGroup = {
-  categoryId: string;
-  categoryName: string;
+  categoryId?: string;
+  categoryName?: string;
+  groupId?: string | null;
+  groupName?: string;
+  sortOrder?: number;
+  seasonId?: string;
+  scope?: 'overall';
   standings: StandingRow[];
+};
+
+export type Group = {
+  _id: string;
+  name: string;
+  season: string | Season;
+  ageCategory?: string | Category;
+  sortOrder?: number;
+};
+
+export type Round = {
+  _id: string;
+  name: string;
+  group: string | Group;
+  roundNumber: number;
+  date?: string;
+  sortOrder?: number;
 };
 
 export async function getCategories(): Promise<Category[]> {
@@ -171,10 +196,19 @@ export async function getPlayerById(id: string): Promise<Player | null> {
   return res.json();
 }
 
-export async function getStandings(ageCategory?: string | null): Promise<StandingsGroup[]> {
-  const url = ageCategory
-    ? `${API_URL}/standings?ageCategory=${encodeURIComponent(ageCategory)}`
-    : `${API_URL}/standings`;
+export async function getStandings(params?: {
+  ageCategory?: string | null;
+  seasonId?: string | null;
+  groupId?: string | null;
+  scope?: 'overall';
+}): Promise<StandingsGroup[]> {
+  const search = new URLSearchParams();
+  if (params?.ageCategory) search.set('ageCategory', params.ageCategory);
+  if (params?.seasonId) search.set('seasonId', params.seasonId);
+  if (params?.groupId) search.set('groupId', params.groupId);
+  if (params?.scope) search.set('scope', params.scope);
+  const query = search.toString();
+  const url = query ? `${API_URL}/standings?${query}` : `${API_URL}/standings`;
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     next: { revalidate: 60 },
@@ -183,15 +217,45 @@ export async function getStandings(ageCategory?: string | null): Promise<Standin
   return res.json();
 }
 
+export async function getGroups(params?: {
+  seasonId?: string;
+  ageCategory?: string;
+}): Promise<Group[]> {
+  const search = new URLSearchParams();
+  if (params?.seasonId) search.set('seasonId', params.seasonId);
+  if (params?.ageCategory) search.set('ageCategory', params.ageCategory);
+  const query = search.toString();
+  const url = query ? `${API_URL}/groups?${query}` : `${API_URL}/groups`;
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error('Failed to fetch groups');
+  return res.json();
+}
+
+export async function getRounds(groupId: string): Promise<Round[]> {
+  const res = await fetch(`${API_URL}/rounds?groupId=${encodeURIComponent(groupId)}`, {
+    headers: { 'Content-Type': 'application/json' },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error('Failed to fetch rounds');
+  return res.json();
+}
+
 export async function getMatches(params?: {
   status?: MatchStatus;
   ageCategory?: string | null;
   seasonId?: string | null;
+  groupId?: string | null;
+  roundId?: string | null;
 }): Promise<Match[]> {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.ageCategory) search.set("ageCategory", params.ageCategory);
   if (params?.seasonId) search.set("seasonId", params.seasonId);
+  if (params?.groupId) search.set("groupId", params.groupId);
+  if (params?.roundId) search.set("roundId", params.roundId);
 
   const query = search.toString();
   const url = query ? `${API_URL}/matches?${query}` : `${API_URL}/matches`;

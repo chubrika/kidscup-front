@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import type {
   Category,
@@ -26,20 +26,35 @@ type EnrichedRow = StandingRow & {
   coachName?: string;
 };
 
-function buildCategoryQuery(categoryId: string | null, basePath: string, seasonId?: string | null): string {
-  if (!categoryId) return `${API_URL}${basePath}`;
+type ViewTab = string; // groupId or '__overall__'
+
+function buildCategoryQuery(
+  categoryId: string | null,
+  basePath: string,
+  seasonId?: string | null,
+  extra?: Record<string, string>
+): string {
   const search = new URLSearchParams();
-  search.set("ageCategory", categoryId);
+  if (categoryId) search.set("ageCategory", categoryId);
   if (seasonId) {
-    // Standings/matches use seasonId; teams API expects season.
     if (basePath === "/teams") search.set("season", seasonId);
     else search.set("seasonId", seasonId);
   }
-  return `${API_URL}${basePath}?${search.toString()}`;
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v) search.set(k, v);
+    }
+  }
+  const q = search.toString();
+  return q ? `${API_URL}${basePath}?${q}` : `${API_URL}${basePath}`;
 }
 
-async function fetchStandings(categoryId: string | null, seasonId?: string | null): Promise<StandingsGroup[]> {
-  const url = buildCategoryQuery(categoryId, "/standings", seasonId);
+async function fetchStandings(
+  categoryId: string | null,
+  seasonId?: string | null,
+  extra?: Record<string, string>
+): Promise<StandingsGroup[]> {
+  const url = buildCategoryQuery(categoryId, "/standings", seasonId, extra);
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch standings");
   return res.json();
@@ -80,6 +95,8 @@ function enrichStandings(standings: StandingRow[], teams: Team[]): EnrichedRow[]
   });
 }
 
+const OVERALL_TAB = "__overall__";
+
 export function StandingsTable({
   categories,
   selectedCategoryId: controlledCategoryId,
@@ -99,12 +116,31 @@ export function StandingsTable({
     : setInternalCategoryId;
 
   const [standingsGroups, setStandingsGroups] = useState<StandingsGroup[]>([]);
+  const [overallGroup, setOverallGroup] = useState<StandingsGroup | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ViewTab>("");
+
+  const groupTabs = useMemo(() => {
+    return standingsGroups
+      .filter((g) => g.scope !== "overall" && g.groupId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [standingsGroups]);
+
+  useEffect(() => {
+    if (groupTabs.length > 0 && !activeTab) {
+      setActiveTab(groupTabs[0].groupId ?? "");
+    }
+    if (groupTabs.length > 0 && activeTab && activeTab !== OVERALL_TAB) {
+      const exists = groupTabs.some((g) => g.groupId === activeTab);
+      if (!exists) setActiveTab(groupTabs[0].groupId ?? "");
+    }
+  }, [groupTabs, activeTab]);
 
   const selectCategory = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
+    setActiveTab("");
     setLoading(true);
     setError(null);
   };
@@ -113,11 +149,13 @@ export function StandingsTable({
     let cancelled = false;
     Promise.all([
       fetchStandings(selectedCategoryId, seasonId),
+      fetchStandings(selectedCategoryId, seasonId, { scope: "overall" }),
       fetchTeams(selectedCategoryId, seasonId),
     ])
-      .then(([s, t]) => {
+      .then(([groups, overallArr, t]) => {
         if (!cancelled) {
-          setStandingsGroups(s);
+          setStandingsGroups(groups);
+          setOverallGroup(overallArr[0] ?? null);
           setTeams(t);
         }
       })
@@ -133,9 +171,19 @@ export function StandingsTable({
     };
   }, [selectedCategoryId, seasonId]);
 
-  const allRows: EnrichedRow[] = standingsGroups.flatMap((g) =>
-    enrichStandings(g.standings, teams)
-  );
+  const activeStandings: EnrichedRow[] = useMemo(() => {
+    if (activeTab === OVERALL_TAB && overallGroup) {
+      return enrichStandings(overallGroup.standings, teams);
+    }
+    const group = groupTabs.find((g) => g.groupId === activeTab) ?? groupTabs[0];
+    if (!group) {
+      const legacy = standingsGroups[0];
+      return legacy ? enrichStandings(legacy.standings, teams) : [];
+    }
+    return enrichStandings(group.standings, teams);
+  }, [activeTab, groupTabs, overallGroup, standingsGroups, teams]);
+
+  const showGroupTabs = groupTabs.length > 0;
 
   return (
     <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
@@ -147,6 +195,48 @@ export function StandingsTable({
           className="rounded-t-xl"
         />
       )}
+      {showGroupTabs && (
+        <div
+          className="flex flex-wrap gap-2 border-b border-zinc-200 bg-zinc-50 px-3 py-2"
+          role="tablist"
+          aria-label="ჯგუფის ფილტრი"
+        >
+          {groupTabs.map((g) => (
+            <button
+              key={g.groupId}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === g.groupId}
+              onClick={() => setActiveTab(g.groupId ?? "")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors arial-caps ${
+                activeTab === g.groupId
+                  ? "bg-[#00306d] text-white"
+                  : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
+              }`}
+            >
+              {g.groupName}
+            </button>
+          ))}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === OVERALL_TAB}
+            onClick={() => setActiveTab(OVERALL_TAB)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors arial-caps ${
+              activeTab === OVERALL_TAB
+                ? "bg-[#9d4300] text-white"
+                : "bg-white text-zinc-600 border border-dashed border-zinc-300 hover:bg-zinc-100"
+            }`}
+          >
+            საერთო სტატისტიკა
+          </button>
+        </div>
+      )}
+      {activeTab === OVERALL_TAB && (
+        <p className="px-4 py-2 text-xs text-zinc-500 dejavu-sans border-b border-zinc-100">
+          საერთო სტატისტიკა — ყველა ჯგუფის დასრულებული თამაშები ერთად; არ წყვეტს ჯგუფურ ადგილებს.
+        </p>
+      )}
       <div className="overflow-x-auto">
         {error && (
           <p className="p-4 text-red-600 text-sm">{error}</p>
@@ -156,9 +246,9 @@ export function StandingsTable({
         )}
         {!loading && !error && (
           <>
-            {allRows.length === 0 ? (
+            {activeStandings.length === 0 ? (
               <p className="p-6 text-zinc-500 text-sm">
-                ამ კატეგორიაში ცხრილი ჯერ არ არის
+                ამ ჯგუფში ცხრილი ჯერ არ არის
               </p>
             ) : (
               <table className="w-full arial-caps text-sm min-w-[720px]">
@@ -184,10 +274,10 @@ export function StandingsTable({
                       წ
                     </th>
                     <th className="w-12 py-3 text-center font-semibold" title="ჩაგდებული ბურთები">
-                     ჩ ბ
+                      ჩ ბ
                     </th>
                     <th className="w-12 py-3 text-center font-semibold" title="მიღებული ბურთები">
-                     მ ბ
+                      მ ბ
                     </th>
                     <th className="w-12 py-3 text-center font-semibold" title="სხვაობა">
                       +/-
@@ -198,13 +288,13 @@ export function StandingsTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {allRows.map((row, index) => (
+                  {activeStandings.map((row, index) => (
                     <tr
                       key={normalizeTeamId(row.teamId)}
                       className="group border-b border-zinc-100 hover:bg-zinc-100/80"
                     >
                       <td className="py-3 pl-4 text-center text-zinc-600 font-medium">
-                        {index < 4 ? (
+                        {activeTab !== OVERALL_TAB && index < 4 ? (
                           <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-[#00306d] text-xs font-semibold text-white">
                             {index + 1}
                           </span>

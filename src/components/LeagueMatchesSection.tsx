@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import type { Category, Match, Season } from "@/lib/api";
+import type { Category, Group, Match, Round, Season } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import { ChevronDownIcon } from "lucide-react";
 
@@ -55,10 +55,32 @@ function formatStatus(status: Match["status"]): string {
   return map[status] ?? status;
 }
 
+function matchGroupId(m: Match): string {
+  const g = m.group;
+  if (!g) return "";
+  return typeof g === "string" ? g : g._id;
+}
+
+function matchRoundId(m: Match): string {
+  const r = m.round;
+  if (!r) return "";
+  return typeof r === "string" ? r : r._id;
+}
+
+function roundLabel(m: Match): string {
+  const r = m.round;
+  if (!r || typeof r === "string") return "";
+  return r.name ?? "";
+}
+
 export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
   const [seasons, setSeasons] = useState<Season[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [rounds, setRounds] = useState<Round[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(true);
   const [loadingMatches, setLoadingMatches] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -95,10 +117,65 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
 
   useEffect(() => {
     let cancelled = false;
+    if (!selectedSeasonId) {
+      setGroups([]);
+      setSelectedGroupId(null);
+      return;
+    }
+    const url = `${API_URL}/groups?seasonId=${encodeURIComponent(selectedSeasonId)}&ageCategory=${encodeURIComponent(category._id)}`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Group[]) => {
+        if (!cancelled) {
+          setGroups(data);
+          setSelectedGroupId((prev) => {
+            if (prev && data.some((g) => g._id === prev)) return prev;
+            return data[0]?._id ?? null;
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGroups([]);
+          setSelectedGroupId(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category._id, selectedSeasonId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedGroupId) {
+      setRounds([]);
+      setSelectedRoundId(null);
+      return;
+    }
+    fetch(`${API_URL}/rounds?groupId=${encodeURIComponent(selectedGroupId)}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Round[]) => {
+        if (!cancelled) {
+          setRounds(data);
+          setSelectedRoundId(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRounds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGroupId]);
+
+  useEffect(() => {
+    let cancelled = false;
     const controller = new AbortController();
     const search = new URLSearchParams();
     search.set("ageCategory", category._id);
     if (selectedSeasonId) search.set("seasonId", selectedSeasonId);
+    if (selectedGroupId) search.set("groupId", selectedGroupId);
+    if (selectedRoundId) search.set("roundId", selectedRoundId);
     const url = `${API_URL}/matches?${search.toString()}`;
 
     fetch(url, { signal: controller.signal })
@@ -120,7 +197,18 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
       cancelled = true;
       controller.abort();
     };
-  }, [category._id, selectedSeasonId]);
+  }, [category._id, selectedSeasonId, selectedGroupId, selectedRoundId]);
+
+  const filteredMatches = useMemo(() => {
+    let list = matches;
+    if (selectedGroupId) {
+      list = list.filter((m) => !matchGroupId(m) || matchGroupId(m) === selectedGroupId);
+    }
+    if (selectedRoundId) {
+      list = list.filter((m) => matchRoundId(m) === selectedRoundId);
+    }
+    return list;
+  }, [matches, selectedGroupId, selectedRoundId]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -145,6 +233,39 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
         <h2 className="text-lg font-semibold text-zinc-900 dejavu-sans">
           მატჩები
         </h2>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+        {groups.length > 0 && (
+          <div className="flex flex-wrap gap-1" role="tablist">
+            {groups.map((g) => (
+              <button
+                key={g._id}
+                type="button"
+                onClick={() => setSelectedGroupId(g._id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium arial-caps ${
+                  selectedGroupId === g._id
+                    ? "bg-[#00306d] text-white"
+                    : "border border-zinc-300 bg-white text-zinc-700"
+                }`}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {rounds.length > 0 && (
+          <select
+            value={selectedRoundId ?? ""}
+            onChange={(e) => setSelectedRoundId(e.target.value || null)}
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dejavu-sans"
+          >
+            <option value="">ყველა ტური</option>
+            {rounds.map((r) => (
+              <option key={r._id} value={r._id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="flex justify-end" ref={dropdownRef}>
           <div className="relative">
             <button
@@ -195,17 +316,18 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
             )}
           </div>
         </div>
+        </div>
       </div>
 
       {loadingMatches ? (
         <p className="py-8 text-center text-zinc-500 arial-caps">იტვირთება...</p>
-      ) : matches.length === 0 ? (
+      ) : filteredMatches.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 py-8 text-center text-zinc-600 arial-caps">
           მატჩები არ მოიძებნა
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {matches.map((m) => (
+          {filteredMatches.map((m) => (
             <article
               key={m._id}
               className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
@@ -213,6 +335,7 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2">
                   <span className="text-[11px] text-zinc-500 dejavu-sans">
+                    {roundLabel(m) ? `${roundLabel(m)} · ` : ""}
                     {formatDateGeorgian(m.date)}
                   </span>
                   {m.time && (
