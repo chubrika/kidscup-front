@@ -115,7 +115,7 @@ function TeamChip({
         )}
       </div>
       <span
-        className={`min-w-0 truncate text-xs font-semibold text-[#00112d] dejavu-sans sm:text-sm ${
+        className={`min-w-0 truncate text-wrap text-xs font-semibold text-[#00112d] dejavu-sans sm:text-sm ${
           isHome ? "text-right" : "text-left"
         }`}
       >
@@ -125,7 +125,7 @@ function TeamChip({
   );
 }
 
-const MAX_MATCHES_PER_GROUP = 6;
+const MAX_MATCHES_PER_GROUP = 8;
 const GROUPS_TO_SHOW = 2;
 
 async function fetchScheduledMatches(
