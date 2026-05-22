@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { API_URL, type Match } from "@/lib/api";
 import type { MatchStats } from "@/lib/liveStats";
 import { createSocket } from "@/lib/socket";
+import { KIDSCUP_CHANNEL_LIVE_URL } from "@/lib/youtube";
 import type { Socket } from "socket.io-client";
 
 export type LiveState = {
@@ -48,7 +49,7 @@ function pickStreamUrlFromMatch(m: Match): string | null {
 export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [state, setLiveState] = useState<LiveState>({
     isLive: false,
-    liveUrl: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+    liveUrl: KIDSCUP_CHANNEL_LIVE_URL,
     liveMatch: null,
     liveStats: null,
   });

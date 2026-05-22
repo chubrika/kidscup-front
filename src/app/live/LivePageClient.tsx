@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useLive } from "@/components/live/LiveProvider";
-import { toYouTubeEmbedUrl } from "@/lib/youtube";
+import { KIDSCUP_CHANNEL_LIVE_URL, toYouTubeEmbedUrl, withYouTubeEmbedParams } from "@/lib/youtube";
 import type { Match } from "@/lib/api";
 
 function teamName(team: unknown): string {
@@ -24,25 +24,20 @@ export function LivePageClient() {
   const homeTeamId = teamId(liveMatch?.homeTeam);
   const awayTeamId = teamId(liveMatch?.awayTeam);
 
-  const embedUrl = useMemo(() => (isLive ? toYouTubeEmbedUrl(liveUrl) : null), [isLive, liveUrl]);
+  const watchUrl = liveUrl?.trim() || KIDSCUP_CHANNEL_LIVE_URL;
+  const embedUrl = useMemo(() => toYouTubeEmbedUrl(watchUrl), [watchUrl]);
+  const src = useMemo(
+    () => (embedUrl ? withYouTubeEmbedParams(embedUrl, { autoplay: "1", mute: "1", playsinline: "1" }) : null),
+    [embedUrl]
+  );
 
-  if (!isLive) {
-    return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-sm font-medium text-zinc-700">No live match right now</p>
-      </div>
-    );
-  }
-
-  if (!embedUrl) {
+  if (!embedUrl || !src) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
         <p className="text-sm font-medium text-zinc-700">Live stream link is unavailable.</p>
       </div>
     );
   }
-
-  const src = `${embedUrl}?autoplay=1&mute=1&playsinline=1`;
 
   const homeScore = homeTeamId ? liveStats?.teamScores.find((t) => t.teamId === homeTeamId)?.points ?? 0 : 0;
   const awayScore = awayTeamId ? liveStats?.teamScores.find((t) => t.teamId === awayTeamId)?.points ?? 0 : 0;
@@ -68,14 +63,16 @@ export function LivePageClient() {
               {liveMatch ? `${teamName(liveMatch.homeTeam)} vs ${teamName(liveMatch.awayTeam)}` : "Kidscup Live"}
             </p>
             <p className="mt-1 text-sm text-zinc-700">
-              {liveMatch
+              {isLive && liveMatch
                 ? `${homeScore} - ${awayScore}${liveMatch.location ? ` • ${liveMatch.location}` : ""}`
-                : "Streaming now"}
+                : isLive
+                  ? "Streaming now"
+                  : "No live match right now — channel stream may still be available"}
             </p>
           </div>
 
           <a
-            href={liveUrl}
+            href={watchUrl}
             target="_blank"
             rel="noreferrer noopener"
             className="inline-flex items-center justify-center dejavu-sans rounded-lg bg-[#ff0033] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#cc0029] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00306d]/40"
@@ -85,7 +82,7 @@ export function LivePageClient() {
         </div>
       </div>
 
-      {liveStats ? (
+      {isLive && liveStats ? (
         <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-5 py-4">
             <p className="text-sm font-semibold text-zinc-900">Live გუნდის ქულები</p>
