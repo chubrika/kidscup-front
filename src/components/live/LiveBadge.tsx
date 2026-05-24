@@ -5,12 +5,13 @@ import { useLive } from "@/components/live/LiveProvider";
 
 export function LiveBadge() {
   const { isLive } = useLive();
-
+  console.log(isLive)
   if (!isLive) return null;
 
   return (
     <Link
-      href="/live"
+      href="https://www.youtube.com/channel/UCpSRLZUX0cn7kAO0YRYUgqw/live" 
+      target="_blank"
       className="group inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow-sm  transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       aria-label="Watch live match"
     >
