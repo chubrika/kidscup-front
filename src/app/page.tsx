@@ -1,6 +1,7 @@
 import { getCategories, getNews } from "@/lib/api";
 import { fetchPublicConfig } from "@/lib/publicConfig";
 import { CalendarSection } from "@/components/CalendarSection";
+import { LiveGamesSection } from "@/components/LiveGamesSection";
 import { LastMatchesSection } from "@/components/LastMatchesSection";
 import { NewsSection } from "@/components/NewsSection";
 import { RegisterSection } from "@/components/RegisterSection";
@@ -35,9 +36,10 @@ export default async function Home() {
   return (
     <div className="">
       {/* Calendar (left) + Standings (right) */}
-      <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
+      <div className="mx-auto max-w-6xl pt-8">
+        <div className="grid grid-cols-1 gap-6 px-4 pb-8 pt-0 sm:px-6 lg:grid-cols-12">
           <div className="lg:col-span-8">
+            <LiveGamesSection categories={categories} />
             <CalendarSection categories={categories} />
           </div>
           <div className="lg:col-span-4">

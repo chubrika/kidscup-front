@@ -21,11 +21,35 @@ function getTeamLogo(team: Match["homeTeam"]): string | null {
   return team.logo ?? null;
 }
 
-function formatScore(match: Match): string {
-  if (match.scoreHome != null && match.scoreAway != null) {
-    return `${match.scoreHome} – ${match.scoreAway}`;
-  }
-  return "–";
+function formatScoreValue(value: number | null | undefined): string {
+  return value != null ? String(value) : "–";
+}
+
+function TeamLine({ team }: { team: Match["homeTeam"] }) {
+  const name = getTeamName(team);
+  const logo = getTeamLogo(team);
+
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white/10">
+        {logo ? (
+          <Image
+            src={logo}
+            alt={name}
+            fill
+            className="object-cover"
+            sizes="20px"
+            unoptimized
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-[9px] font-medium text-white/70">
+            {name.charAt(0)}
+          </span>
+        )}
+      </div>
+      <span className="truncate text-white">{name}</span>
+    </div>
+  );
 }
 
 export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
@@ -128,75 +152,23 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
           </p>
         )}
         {!loading && !error && lastMatches.length > 0 && (
-          <table className="w-full dejavu-sans text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-white">
-                <th className="py-3 pl-3 text-left font-normal">გუნდი</th>
-                <th className="w-[96px] py-3 text-center font-normal">ანგარიში</th>
-                <th className="py-3 pr-3 text-right font-normal">გუნდი</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lastMatches.map((m) => (
-                <tr
-                  key={m._id}
-                  className="border-b border-white/10 hover:bg-white/5 transition-colors"
-                >
-                  <td className="py-3 pl-3 text-white">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-white/10">
-                        {getTeamLogo(m.homeTeam) ? (
-                          <Image
-                            src={getTeamLogo(m.homeTeam)!}
-                            alt={getTeamName(m.homeTeam)}
-                            fill
-                            className="object-cover"
-                            sizes="24px"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-[10px] font-medium text-white/70">
-                            {getTeamName(m.homeTeam).charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                      <span className="truncate max-w-[220px]">{getTeamName(m.homeTeam)}</span>
-                    </div>
-                  </td>
-
-                  <td className="py-3 text-center font-semibold text-white tabular-nums">
-                    <span className="inline-flex rounded-full bg-white/10 px-2 py-0.5 border border-white/10">
-                      {formatScore(m)}
-                    </span>
-                  </td>
-
-                  <td className="py-3 pr-3 text-white">
-                    <div className="flex items-center justify-end gap-2 min-w-0">
-                      <span className="truncate max-w-[220px] text-right">
-                        {getTeamName(m.awayTeam)}
-                      </span>
-                      <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-white/10">
-                        {getTeamLogo(m.awayTeam) ? (
-                          <Image
-                            src={getTeamLogo(m.awayTeam)!}
-                            alt={getTeamName(m.awayTeam)}
-                            fill
-                            className="object-cover"
-                            sizes="24px"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-[10px] font-medium text-white/70">
-                            {getTeamName(m.awayTeam).charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="w-full dejavu-sans text-xs">
+            {lastMatches.map((m) => (
+              <li
+                key={m._id}
+                className="flex items-center gap-3 border-b border-white/10 px-3 py-2.5 hover:bg-white/5 transition-colors"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <TeamLine team={m.homeTeam} />
+                  <TeamLine team={m.awayTeam} />
+                </div>
+                <div className="flex shrink-0 flex-col gap-1.5 text-right font-semibold tabular-nums text-white">
+                  <span className="leading-5">{formatScoreValue(m.scoreHome)}</span>
+                  <span className="leading-5">{formatScoreValue(m.scoreAway)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </section>
