@@ -147,16 +147,54 @@ function groupByDateThenGroup(matches: Match[]): DateGroup[] {
     });
 }
 
-function TeamLogo({ name, logo }: { name: string; logo?: string }) {
+function TeamLogo({
+  name,
+  logo,
+  size = "md",
+}: {
+  name: string;
+  logo?: string;
+  size?: "sm" | "md";
+}) {
+  const box =
+    size === "sm"
+      ? "h-5 w-5 rounded-[4px] sm:h-6 sm:w-6"
+      : "h-7 w-7 rounded-full sm:h-8 sm:w-8";
+  const initial = size === "sm" ? "text-[9px]" : "text-[10px] sm:text-xs";
+
   return (
-    <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-200 sm:h-8 sm:w-8">
+    <div className={`relative shrink-0 overflow-hidden bg-zinc-200 ${box}`}>
       {logo ? (
-        <Image src={logo} alt="" fill className="object-cover" sizes="32px" unoptimized />
+        <Image
+          src={logo}
+          alt=""
+          fill
+          className="object-cover"
+          sizes={size === "sm" ? "20px" : "32px"}
+          unoptimized
+        />
       ) : (
-        <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-zinc-500 sm:text-xs">
+        <span
+          className={`flex h-full w-full items-center justify-center font-semibold text-zinc-500 ${initial}`}
+        >
           {name.charAt(0)}
         </span>
       )}
+    </div>
+  );
+}
+
+/** Flashscore-style row: crest left, name right */
+function TeamLine({ team }: { team: Match["homeTeam"] }) {
+  const name = getTeamName(team);
+  const logo = getTeamLogo(team);
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <TeamLogo name={name} logo={logo} size="sm" />
+      <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-zinc-900">
+        {name}
+      </span>
     </div>
   );
 }
@@ -202,21 +240,41 @@ function MatchRow({ match }: { match: Match }) {
 
   return (
     <li className="px-3 py-3 sm:px-4 sm:py-3.5">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <span className="w-9 shrink-0 text-center text-xs font-semibold tabular-nums text-zinc-900 sm:w-10 sm:text-sm">
+      {/* Mobile: time | stacked teams | location — one row */}
+      <div className="flex items-center gap-3 sm:hidden">
+        <span className="w-10 shrink-0 text-center text-xs font-semibold tabular-nums text-zinc-900">
           {time}
         </span>
 
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <TeamLine team={match.homeTeam} />
+          <TeamLine team={match.awayTeam} />
+        </div>
+
+        {match.location && (
+          <p className="flex max-w-[150px] shrink-0 items-center gap-1 text-[11px] text-zinc-500">
+            <MapPin className="h-3 w-3 shrink-0 text-zinc-400" aria-hidden="true" />
+            <span className="truncate text-wrap">{match.location}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Desktop: horizontal home vs away */}
+      <div className="hidden items-center gap-3 sm:flex">
+        <span className="w-10 shrink-0 text-center text-sm font-semibold tabular-nums text-zinc-900">
+          {time}
+        </span>
+
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <TeamRow team={match.homeTeam} side="home" />
-          <span className="shrink-0 px-0.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 sm:rounded-full sm:bg-zinc-100 sm:px-2 sm:py-0.5 sm:text-zinc-500">
+          <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
             vs
           </span>
           <TeamRow team={match.awayTeam} side="away" />
         </div>
 
         {match.location && (
-          <p className="hidden max-w-[140px] shrink-0 items-center gap-1 text-xs text-zinc-500 sm:flex lg:max-w-[160px]">
+          <p className="flex max-w-[140px] shrink-0 items-center gap-1 text-xs text-zinc-500 lg:max-w-[160px]">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden="true" />
             <span className="truncate">{match.location}</span>
           </p>
