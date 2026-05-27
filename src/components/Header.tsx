@@ -14,7 +14,7 @@ import {
 } from "@/lib/publicConfig";
 
 const MAIN_NAV = [
-  // { href: "/", label: "მთავარი" },
+  { href: "/", label: "მთავარი" },
   { href: "/teams", label: "კლუბები" },
   { href: "/league", label: "ჩემპიონატები" },
   { href: "/calendar", label: "კალენდარი" },
@@ -112,18 +112,24 @@ export function Header(_props: HeaderProps) {
           </div>
         </div>
         <nav className="hidden items-center h-full gap-6 text-[16px] font-medium text-white dejavu-sans md:flex">
-          {MAIN_NAV.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`text-slate-600 relative hover:text-[#fd7209] h-[30px] flex items-center justify-center transition-all duration-300`}
-            >
-              {label}
-              {pathname === href && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] min-h-[1px] bg-[#fd7209] rounded-t-full" />
-              )}
-            </Link>
-          ))}
+          {MAIN_NAV.map(({ href, label }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="group relative flex h-[30px] items-center justify-center text-slate-600 transition-colors duration-300 hover:text-[#fd7209]"
+              >
+                {label}
+                <span
+                  aria-hidden
+                  className={`absolute bottom-0 left-0 right-0 h-[2px] min-h-[1px] origin-left rounded-t-full bg-[#fd7209] transition-transform duration-300 ease-out ${
+                    isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`}
+                />
+              </Link>
+            );
+          })}
           {registerLoading ? (
             <RegisterTeamButtonSkeleton className="hidden md:block h-10 w-[180px]" />
           ) : showRegister ? (
