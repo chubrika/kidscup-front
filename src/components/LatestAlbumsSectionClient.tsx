@@ -89,15 +89,15 @@ export default function LatestAlbumsSectionClient() {
       ) : !hasAlbums ? (
         <p className="mt-3 text-sm text-zinc-600">ალბომები ჯერ არ არის.</p>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="-mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
           {albums.map((a) => (
             <Link
               key={a._id}
               href={`/media?tab=photo&seasonId=${encodeURIComponent(a.seasonId)}&albumId=${encodeURIComponent(a._id)}`}
-              className="group w-full"
+              className="group w-[260px] shrink-0 sm:w-full"
             >
               <div className="overflow-hidden transition-colors">
-                <div className="relative w-full bg-zinc-100 h-36 sm:h-40">
+                <div className="relative w-full overflow-hidden rounded-lg bg-zinc-100 h-36 sm:h-40">
                   {a.thumbUrl ? (
                     <Image
                       src={a.thumbUrl}
@@ -111,18 +111,20 @@ export default function LatestAlbumsSectionClient() {
                     <div className="absolute inset-0 bg-gradient-to-br from-[#00112d] to-[#fd7209]/80" />
                   )}
 
-                  <div className="absolute bottom-2 left-2 rounded-md bg-[#fd7208] px-2 py-1 text-white backdrop-blur-sm">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+
+                  <div className="absolute top-2 right-2 rounded-md bg-[#fd7208] px-2 py-1 text-white backdrop-blur-sm">
                     <Camera className="block h-4 w-4" aria-hidden="true" />
                   </div>
-                </div>
 
-                <div className="py-3">
-                  <p className="dejavu-sans text-sm font-semibold text-zinc-900 line-clamp-2">
-                    {a.title}
-                  </p>
-                  <p className="arial-caps mt-2 text-[11px] text-zinc-600 line-clamp-1">
-                    {a.seasonName} • {a.photosCount} ფოტო
-                  </p>
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <p className="dejavu-sans text-sm font-semibold text-white line-clamp-2">
+                      {a.title}
+                    </p>
+                    <p className="arial-caps mt-1 text-[11px] text-white/85 line-clamp-1">
+                      {a.seasonName} • {a.photosCount} ფოტო
+                    </p>
+                  </div>
                 </div>
               </div>
             </Link>

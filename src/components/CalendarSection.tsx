@@ -324,7 +324,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
 
   return (
     <section>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-3 flex-row sm:items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="inline-flex h-7 w-7 items-center justify-center sm:h-8 sm:w-8">
             <CalendarDays className="h-5 w-5 text-[#9d4300] sm:h-6 sm:w-6" />

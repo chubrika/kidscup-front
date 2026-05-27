@@ -33,7 +33,7 @@ export default function NewsSectionClient({ news }: NewsSectionClientProps) {
   const rest = latest.slice(1, 4);
 
   return (
-    <section className="overflow-hidden">
+    <section>
       {latest.length === 0 || !featured ? (
         <p className="text-sm text-zinc-600">სიახლეები ჯერ არ არის დამატებული.</p>
       ) : (
@@ -79,21 +79,21 @@ export default function NewsSectionClient({ news }: NewsSectionClientProps) {
                 სხვა სიახლეები ჯერ არ არის დამატებული.
               </p>
             ) : (
-              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="-mx-4 mt-3 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
                 {rest.map((item) => (
                   <Link
                     key={item._id}
                     href={`/news/${item._id}`}
-                    className="group w-full"
+                    className="group w-[260px] shrink-0 sm:w-full"
                   >
-                    <div className="overflow-hidden transition-colors">
-                      <div className="relative w-full bg-zinc-100 h-36 sm:h-40">
+                    <div className="overflow-hidden  transition-colors">
+                      <div className="relative rounded-lg w-full bg-zinc-100 h-36 sm:h-40">
                         {item.photoUrl ? (
                           <Image
                             src={item.photoUrl}
                             alt={item.title}
                             fill
-                            className="object-cover group-hover:scale-[1.02] transition-transform"
+                            className="object-cover rounded-lg group-hover:scale-[1.02] transition-transform"
                             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             unoptimized
                           />

@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { getCategories } from "@/lib/api";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import { Clarity } from "@/components/analytics/Clarity";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default async function RootLayout({
           <Footer />
           <MobileBottomNav />
         </ClientProviders>
+        <Clarity />
       </body>
     </html>
   );

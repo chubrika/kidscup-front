@@ -15,17 +15,20 @@ import {
 
 const MAIN_NAV = [
   // { href: "/", label: "მთავარი" },
-  { href: "/news", label: "სიახლეები" },
-  { href: "/media", label: "მედია" },
   { href: "/teams", label: "კლუბები" },
   { href: "/league", label: "ჩემპიონატები" },
+  { href: "/calendar", label: "კალენდარი" },
+  { href: "/news", label: "სიახლეები" },
+  { href: "/media", label: "მედია" },
   { href: "/contact", label: "კონტაქტი" }
 ] as const;
 
 const MOBILE_NAV = [
+  { href: "/teams", label: "კლუბები" },
+  { href: "/league", label: "ჩემპიონატები" },
+  { href: "/calendar", label: "კალენდარი" },
   { href: "/news", label: "სიახლეები" },
   { href: "/media", label: "მედია" },
-  { href: "/league", label: "ჩემპიონატები" },
   { href: "/contact", label: "კონტაქტი" }
 ];
 

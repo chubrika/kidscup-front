@@ -5,7 +5,6 @@ import { useLive } from "@/components/live/LiveProvider";
 
 export function LiveBadge() {
   const { isLive } = useLive();
-  console.log(isLive)
   if (!isLive) return null;
 
   return (

@@ -14,7 +14,6 @@ export default async function MatchDetailPage({
 
   const match = await getMatchById(id);
   if (!match) notFound();
- console.log("match id", match);
   const stats = await getMatchStats(match._id).catch(() => null);
 
   return (

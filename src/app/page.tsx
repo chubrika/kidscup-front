@@ -1,4 +1,4 @@
-import { getCategories, getNews } from "@/lib/api";
+import { getCategories, getNews, getTeams, Team } from "@/lib/api";
 import { fetchPublicConfig } from "@/lib/publicConfig";
 import { CalendarSection } from "@/components/CalendarSection";
 import { LiveGamesSection } from "@/components/LiveGamesSection";
@@ -7,6 +7,7 @@ import { NewsSection } from "@/components/NewsSection";
 import { RegisterSection } from "@/components/RegisterSection";
 import { StandingsSection } from "@/components/StandingsSection";
 import { LatestAlbumsSection } from "@/components/LatestAlbumsSection";
+import { TeamsMarquee } from "@/components/TeamsMarquee";
 
 export default async function Home() {
   let categories: Awaited<ReturnType<typeof getCategories>> = [];
@@ -23,6 +24,13 @@ export default async function Home() {
     // Backend may be down
   }
 
+  let teams: Team[] = [];
+  try {
+    teams = await getTeams();
+  } catch {
+    // Backend may be down
+  }
+
   let teamRegistrationEnabled = false;
   try {
     const publicConfig = await fetchPublicConfig({
@@ -35,6 +43,7 @@ export default async function Home() {
 
   return (
     <div className="">
+      <TeamsMarquee teams={teams} />
       {/* Calendar (left) + Standings (right) */}
       <div className="mx-auto max-w-6xl pt-8">
         <div className="grid grid-cols-1 gap-6 px-4 pb-8 pt-0 sm:px-6 lg:grid-cols-12">
@@ -52,12 +61,12 @@ export default async function Home() {
       {/* News */}
       <div className="bg-sky">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-12">
-            <div className="lg:col-span-8">
+          <div className="flex flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:flex-nowrap">
+            <div className="order-2 w-full min-w-0 lg:order-1 lg:flex-[2]">
               <NewsSection news={news} />
               <LatestAlbumsSection />
             </div>
-            <div className="lg:col-span-4">
+            <div className="order-1 w-full min-w-0 lg:order-2 lg:flex-1">
               <LastMatchesSection categories={categories} />
             </div>
           </div>
