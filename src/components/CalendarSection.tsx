@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Category, Group, Match, Season, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
@@ -9,11 +9,6 @@ import { ArrowRight, CalendarDays } from "lucide-react";
 
 type CalendarSectionProps = {
   categories: Category[];
-};
-
-type GroupBlock = {
-  group: Group;
-  matchesByDate: [string, Match[]][];
 };
 
 function getTeam(team: Match["homeTeam"]): Team | null {
@@ -126,7 +121,6 @@ function TeamChip({
 }
 
 const MAX_MATCHES_PER_GROUP = 8;
-const GROUPS_TO_SHOW = 2;
 
 async function fetchScheduledMatches(
   categoryId: string,
@@ -145,30 +139,40 @@ async function fetchScheduledMatches(
   return res.json();
 }
 
+function EmptyScheduledMatches({ groupName }: { groupName?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-gradient-to-b from-zinc-50/80 to-white px-6 py-10 text-center sm:py-12">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#9d4300]/10 ring-1 ring-[#9d4300]/15 sm:mb-4 sm:h-14 sm:w-14">
+        <CalendarDays className="h-6 w-6 text-[#9d4300] sm:h-7 sm:w-7" />
+      </div>
+      <p className="text-sm font-semibold text-[#00112d] dejavu-sans sm:text-base">
+        დაგეგმილი მატჩები არ არის
+      </p>
+      <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-zinc-500 sm:text-sm">
+        {groupName
+          ? `„${groupName}"-ში ჯერ არაფერია დაგეგმილი. სცადეთ სხვა ჯგუფი ან გადაამოწმეთ მოგვიანებით.`
+          : "ამ კატეგორიაში ჯერ არაფერია დაგეგმილი. გადაამოწმეთ მოგვიანებით."}
+      </p>
+    </div>
+  );
+}
+
 function GroupCalendarBlock({
-  group,
+  groupName,
   matchesByDate,
 }: {
-  group: Group;
+  groupName?: string;
   matchesByDate: [string, Match[]][];
 }) {
   const hasMatches = matchesByDate.length > 0;
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="px-1 text-sm font-semibold tracking-tight text-[#00112d] arial-caps sm:text-base">
-        {group.name}
-      </h3>
-
-      {!hasMatches && (
-        <p className="px-1 text-xs text-zinc-500 sm:text-sm">
-          დაგეგმილი მატჩები არ არის
-        </p>
-      )}
+      {!hasMatches && <EmptyScheduledMatches groupName={groupName} />}
 
       {matchesByDate.map(([dateKey, dayMatches]) => (
         <div
-          key={`${group._id}-${dateKey}`}
+          key={dateKey}
           className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
         >
           <div className="border-b border-zinc-100 bg-zinc-50/80 px-3 py-2 sm:px-4">
@@ -210,9 +214,29 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
   );
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [groupBlocks, setGroupBlocks] = useState<GroupBlock[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [matchesByDate, setMatchesByDate] = useState<[string, Match[]][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const sortedGroups = useMemo(
+    () => [...groups].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+    [groups]
+  );
+
+  const activeGroup = useMemo(
+    () => sortedGroups.find((g) => g._id === activeGroupId) ?? sortedGroups[0] ?? null,
+    [sortedGroups, activeGroupId]
+  );
+
+  useEffect(() => {
+    if (sortedGroups.length === 0) {
+      setActiveGroupId(null);
+      return;
+    }
+    const exists = activeGroupId && sortedGroups.some((g) => g._id === activeGroupId);
+    if (!exists) setActiveGroupId(sortedGroups[0]._id);
+  }, [sortedGroups, activeGroupId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,12 +299,9 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    const displayGroups = [...groups]
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .slice(0, GROUPS_TO_SHOW);
 
-    if (!selectedCategoryId || displayGroups.length === 0) {
-      setGroupBlocks([]);
+    if (!selectedCategoryId || !activeGroup) {
+      setMatchesByDate([]);
       setLoading(false);
       setError(null);
       return () => controller.abort();
@@ -289,27 +310,21 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
     setLoading(true);
     setError(null);
 
-    Promise.all(
-      displayGroups.map(async (group) => {
-        const matches = await fetchScheduledMatches(
-          selectedCategoryId,
-          selectedSeasonId,
-          group._id,
-          controller.signal
-        );
-        return {
-          group,
-          matchesByDate: buildMatchesByDate(matches, MAX_MATCHES_PER_GROUP),
-        };
-      })
+    fetchScheduledMatches(
+      selectedCategoryId,
+      selectedSeasonId,
+      activeGroup._id,
+      controller.signal
     )
-      .then((blocks) => {
-        if (!cancelled) setGroupBlocks(blocks);
+      .then((matches) => {
+        if (!cancelled) {
+          setMatchesByDate(buildMatchesByDate(matches, MAX_MATCHES_PER_GROUP));
+        }
       })
       .catch((e) => {
         if (!cancelled && e.name !== "AbortError") {
           setError(e instanceof Error ? e.message : "Error");
-          setGroupBlocks([]);
+          setMatchesByDate([]);
         }
       })
       .finally(() => {
@@ -320,7 +335,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
       cancelled = true;
       controller.abort();
     };
-  }, [selectedCategoryId, selectedSeasonId, groups]);
+  }, [selectedCategoryId, selectedSeasonId, activeGroup]);
 
   return (
     <section>
@@ -329,7 +344,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
           <span className="inline-flex h-7 w-7 items-center justify-center sm:h-8 sm:w-8">
             <CalendarDays className="h-5 w-5 text-[#9d4300] sm:h-6 sm:w-6" />
           </span>
-          <h2 className="text-lg font-semibold tracking-tight text-[#00112d] arial-caps sm:text-xl md:text-2xl">
+          <h2 className="text-lg font-semibold tracking-tight text-[#00112d] arial-caps sm:text-xl md:text-lg">
             დაგეგმილი თამაშები
           </h2>
         </div>
@@ -347,7 +362,10 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => setSelectedCategoryId(cat._id)}
+                onClick={() => {
+                  setSelectedCategoryId(cat._id);
+                  setActiveGroupId(null);
+                }}
                 className={`rounded-full cursor-pointer border px-2.5 py-0.5 text-[11px] font-medium arial-caps transition-colors sm:px-3 sm:py-1 sm:text-xs ${
                   selected
                     ? "border-[#00112d] bg-[#00112d] text-white"
@@ -361,29 +379,52 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
         </div>
       </div>
 
+      {sortedGroups.length > 1 && (
+        <div className="mt-3 pb-2 sm:mt-4">
+          <div
+            className="flex flex-wrap justify-start gap-3"
+            role="tablist"
+            aria-label="ჯგუფის ფილტრი"
+          >
+            {sortedGroups.map((group) => (
+              <button
+                key={group._id}
+                type="button"
+                role="tab"
+                aria-selected={activeGroupId === group._id}
+                onClick={() => setActiveGroupId(group._id)}
+                className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${
+                  activeGroupId === group._id
+                    ? "text-[#9d4300]"
+                    : "text-zinc-500 hover:text-zinc-700"
+                }`}
+              >
+                {group.name}
+                {activeGroupId === group._id && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-[#9d4300]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col gap-6 sm:mt-5 sm:gap-8">
         {error && <p className="px-1 text-xs text-red-600 sm:text-sm">{error}</p>}
         {loading && (
           <p className="px-1 text-xs text-zinc-500 sm:text-sm">იტვირთება...</p>
         )}
-        {!loading && !error && groups.length === 0 && (
+        {!loading && !error && sortedGroups.length === 0 && (
           <p className="px-1 text-xs text-zinc-500 sm:text-sm">
             ჯგუფები არ მოიძებნა
           </p>
         )}
-        {!loading &&
-          !error &&
-          groupBlocks.map((block, index) => (
-            <div
-              key={block.group._id}
-              className={index > 0 ? "pt-6 sm:pt-8" : undefined}
-            >
-              <GroupCalendarBlock
-                group={block.group}
-                matchesByDate={block.matchesByDate}
-              />
-            </div>
-          ))}
+        {!loading && !error && activeGroup && (
+          <GroupCalendarBlock
+            groupName={activeGroup.name}
+            matchesByDate={matchesByDate}
+          />
+        )}
 
         {!loading && (
           <div className="px-1 pt-0.5">

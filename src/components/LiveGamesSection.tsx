@@ -237,7 +237,7 @@ export function LiveGamesSection({ categories }: LiveGamesSectionProps) {
           <span className="inline-flex h-7 w-7 items-center justify-center sm:h-8 sm:w-8">
             <Radio className="h-5 w-5 text-red-600 sm:h-6 sm:w-6" />
           </span>
-          <h2 className="text-lg font-semibold tracking-tight text-[#00112d] arial-caps sm:text-xl md:text-2xl">
+          <h2 className="text-lg font-semibold tracking-tight text-[#00112d] arial-caps sm:text-xl md:text-lg">
             მიმდინარე თამაშები
           </h2>
         </div>

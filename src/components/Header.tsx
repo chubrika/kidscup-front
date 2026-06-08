@@ -87,7 +87,7 @@ export function Header(_props: HeaderProps) {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-[#00112d] backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <Link
@@ -118,7 +118,9 @@ export function Header(_props: HeaderProps) {
               <Link
                 key={href}
                 href={href}
-                className="group relative flex h-[30px] items-center justify-center text-slate-600 transition-colors duration-300 hover:text-[#fd7209]"
+                className={`group relative flex h-[30px] items-center justify-center transition-colors duration-300 hover:text-[#fd7209] ${
+                  isActive ? "text-[#fd7209]" : ""
+                }`}
               >
                 {label}
                 <span
@@ -177,16 +179,21 @@ export function Header(_props: HeaderProps) {
         >
           <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 shadow-lg">
             <div className="flex flex-col gap-1 text-sm font-medium text-slate-600">
-              {MOBILE_NAV.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="rounded arial-caps px-2 py-2 hover:bg-white/10 text-slate-600"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {label}
-                </Link>
-              ))}
+              {MOBILE_NAV.map(({ href, label }) => {
+                const isActive = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`rounded arial-caps px-2 py-2 hover:bg-zinc-50 ${
+                      isActive ? "text-[#fd7209] font-semibold" : "text-slate-600"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>

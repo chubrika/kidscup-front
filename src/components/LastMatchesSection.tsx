@@ -25,6 +25,17 @@ function formatScoreValue(value: number | null | undefined): string {
   return value != null ? String(value) : "–";
 }
 
+function scoreClassName(
+  value: number | null | undefined,
+  opponent: number | null | undefined
+): string {
+  const base = "leading-5";
+  if (value == null || opponent == null) return `${base} text-white`;
+  if (value > opponent) return `${base} text-[#fd7209]`;
+  if (value < opponent) return `${base} text-white/45`;
+  return `${base} text-white`;
+}
+
 function TeamLine({ team }: { team: Match["homeTeam"] }) {
   const name = getTeamName(team);
   const logo = getTeamLogo(team);
@@ -104,24 +115,22 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
       if (Number.isNaN(tb)) return -1;
       return tb - ta;
     });
-    return sorted.slice(0, 6);
+    return sorted.slice(0, 8);
   }, [matches]);
+
+  const resultsHref = selectedCategoryId
+    ? `/results?ageCategory=${encodeURIComponent(selectedCategoryId)}`
+    : "/results";
 
   return (
     <section className="rounded-xl border border-zinc-200 bg-[#00112d] shadow-lg overflow-hidden">
-      <div className="px-3 pt-3 flex items-center justify-between gap-3">
-        <h2 className="text-md text-white dejavu-sans">
-          ბოლო თამაშები
-        </h2>
-        <Link
-          href={selectedCategoryId ? `/results?ageCategory=${encodeURIComponent(selectedCategoryId)}` : "/results"}
-          className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-medium text-white/90 transition-colors hover:bg-white/15"
+      <div className="border-b border-white/10 px-3 py-2 flex items-center justify-between gap-3">
+        <h2 className="text-md text-white dejavu-sans">ბოლო თამაშები</h2>
+        <div
+          className="flex flex-wrap justify-end gap-4"
+          role="tablist"
+          aria-label="კატეგორიის ფილტრი"
         >
-          სრული შედეგები
-        </Link>
-      </div>
-      <div className="border-b border-white/10 px-3 py-2">
-        <div className="flex flex-wrap justify-start gap-4" role="tablist" aria-label="კატეგორიის ფილტრი">
           {categories.map((cat) => (
             <button
               key={cat._id}
@@ -129,7 +138,11 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
               role="tab"
               aria-selected={selectedCategoryId === cat._id}
               onClick={() => handleSelectCategory(cat._id)}
-              className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${selectedCategoryId === cat._id ? "text-white" : "text-white/60 hover:text-white/80"}`}
+              className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${
+                selectedCategoryId === cat._id
+                  ? "text-white"
+                  : "text-white/60 hover:text-white/80"
+              }`}
             >
               {cat.name}
               {selectedCategoryId === cat._id && (
@@ -154,21 +167,37 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
         {!loading && !error && lastMatches.length > 0 && (
           <ul className="w-full dejavu-sans text-xs">
             {lastMatches.map((m) => (
-              <li
-                key={m._id}
-                className="flex items-center gap-3 border-b border-white/10 px-3 py-2.5 hover:bg-white/5 transition-colors"
-              >
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <TeamLine team={m.homeTeam} />
-                  <TeamLine team={m.awayTeam} />
-                </div>
-                <div className="flex shrink-0 flex-col gap-1.5 text-right font-semibold tabular-nums text-white">
-                  <span className="leading-5">{formatScoreValue(m.scoreHome)}</span>
-                  <span className="leading-5">{formatScoreValue(m.scoreAway)}</span>
-                </div>
+              <li key={m._id} className="border-b border-white/10">
+                <Link
+                  href={`/matches/${encodeURIComponent(m._id)}`}
+                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fd7209]/60 focus-visible:ring-inset"
+                >
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <TeamLine team={m.homeTeam} />
+                    <TeamLine team={m.awayTeam} />
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1.5 text-right font-semibold tabular-nums">
+                    <span className={scoreClassName(m.scoreHome, m.scoreAway)}>
+                      {formatScoreValue(m.scoreHome)}
+                    </span>
+                    <span className={scoreClassName(m.scoreAway, m.scoreHome)}>
+                      {formatScoreValue(m.scoreAway)}
+                    </span>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
+        )}
+        {!loading && !error && (
+          <div className="px-3 py-3 flex justify-center border-t border-white/10">
+            <Link
+              href={resultsHref}
+              className="px-4 py-2 text-white text-center bg-white/10 py-1 rounded-lg font-label text-[12px] font-normal hover:bg-white/20 transition-colors arial-caps tracking-widest"
+            >
+              სრული შედეგები
+            </Link>
+          </div>
         )}
       </div>
     </section>
