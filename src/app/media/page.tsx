@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { API_URL, type Season } from "@/lib/api";
+import { VideoCard } from "@/components/videos/VideoCard";
+import { API_URL, type Season, type Video } from "@/lib/api";
 
 const TABS = [
   { key: "photo", label: "ფოტო" },
@@ -26,20 +27,28 @@ function MediaPageInner() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
-        <div className="border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-4 py-3">
-          <h1 className="arial-caps text-sm font-semibold tracking-wide text-zinc-800">მედია</h1>
-        </div>
+        <div className="flex flex-col gap-3 border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="arial-caps text-sm font-semibold tracking-wide text-[#00112d] sm:text-base">
+            მედია
+          </h1>
 
-        <div className="border-b border-zinc-200 px-4 py-3">
-          <div className="inline-flex rounded-md border border-zinc-200 p-1">
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="tablist"
+            aria-label="მედიის ტიპი"
+          >
             {TABS.map(({ key, label }) => {
               const isActive = tab === key;
               return (
                 <Link
                   key={key}
                   href={key === "photo" ? "/media?tab=photo" : "/media?tab=video"}
-                  className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive ? "bg-[#00306d] text-white" : "text-zinc-700 hover:bg-zinc-100"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium arial-caps transition-colors sm:px-4 sm:py-1.5 sm:text-sm ${
+                    isActive
+                      ? "border-[#00112d] bg-[#00112d] text-white"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                   }`}
                 >
                   {label}
@@ -50,14 +59,61 @@ function MediaPageInner() {
         </div>
 
         <div className="p-6">
-          {tab === "photo" ? (
-            <SeasonPhotosTab />
-          ) : (
-            <p className="text-sm text-zinc-600">ვიდეო კონტენტი აქ გამოჩნდება.</p>
-          )}
+          {tab === "photo" ? <SeasonPhotosTab /> : <VideosTab />}
         </div>
       </section>
     </div>
+  );
+}
+
+function VideosTab() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!cancelled) setLoading(true);
+    });
+
+    fetch(`${API_URL}/videos`, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch videos");
+        return r.json();
+      })
+      .then((data: Video[]) => {
+        if (!cancelled) setVideos(data ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setVideos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  if (loading) {
+    return <p className="text-sm text-zinc-600">იტვირთება...</p>;
+  }
+
+  if (!videos.length) {
+    return <p className="text-sm text-zinc-600">ვიდეოები ჯერ არ არის გამოქვეყნებული.</p>;
+  }
+
+  return (
+    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {videos.map((video) => (
+        <li key={video._id}>
+          <VideoCard video={video} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -327,8 +383,14 @@ function MediaPageSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <section className="rounded-md border border-zinc-200 bg-white overflow-hidden">
-        <div className="border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-4 py-3">
-          <h1 className="arial-caps text-sm font-semibold tracking-wide text-zinc-800">მედია</h1>
+        <div className="flex flex-col gap-3 border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="arial-caps text-sm font-semibold tracking-wide text-[#00112d] sm:text-base">
+            მედია
+          </h1>
+          <div className="flex gap-1.5">
+            <span className="h-7 w-16 rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
+            <span className="h-7 w-16 rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
+          </div>
         </div>
         <div className="p-6">
           <p className="text-sm text-zinc-600">იტვირთება...</p>

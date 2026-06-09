@@ -342,3 +342,35 @@ export async function getNewsById(id: string): Promise<News | null> {
   if (!res.ok) throw new Error("Failed to fetch news");
   return res.json();
 }
+
+export type VideoCategory = "Full Match" | "Highlights" | "Interview";
+
+export type Video = {
+  _id: string;
+  title: string;
+  description?: string;
+  youtubeId: string;
+  category: VideoCategory;
+  status?: "draft" | "published";
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getVideos(): Promise<Video[]> {
+  const res = await fetch(`${API_URL}/videos`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch videos");
+  return res.json();
+}
+
+export async function getVideoById(id: string): Promise<Video | null> {
+  const res = await fetch(`${API_URL}/videos/${encodeURIComponent(id)}`, {
+    headers: { "Content-Type": "application/json" },
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch video");
+  return res.json();
+}

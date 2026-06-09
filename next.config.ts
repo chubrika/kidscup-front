@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "pub-312943de8cf649a5982b1c13eb790bbc.r2.dev",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "/vi/**",
+      },
       // Common local dev hosts (backend serving uploaded logos)
       {
         protocol: "http",

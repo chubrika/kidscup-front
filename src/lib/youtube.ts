@@ -60,6 +60,27 @@ export function toYouTubeEmbedUrl(inputUrl: string): string | null {
   return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
 }
 
+export function youtubeThumbnailUrl(
+  videoId: string,
+  quality: "maxresdefault" | "hqdefault" = "maxresdefault",
+): string {
+  return `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/${quality}.jpg`;
+}
+
+export function youtubeEmbedUrl(
+  videoId: string,
+  extraParams?: Record<string, string>,
+): string {
+  const url = new URL(`https://www.youtube.com/embed/${encodeURIComponent(videoId)}`);
+  url.searchParams.set("rel", "0");
+  if (extraParams) {
+    Object.entries(extraParams).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+  }
+  return url.toString();
+}
+
 export function withYouTubeEmbedParams(
   embedUrl: string,
   params: { autoplay?: "0" | "1"; mute?: "0" | "1"; playsinline?: "0" | "1" }

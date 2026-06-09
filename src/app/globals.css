@@ -35,6 +35,32 @@
   background-color: #f1f3f8;
 }
 
+.video-play-button {
+  display: block;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.video-play-button::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  margin: 1.05rem 0 0 1.3rem;
+  border-top: 0.55rem solid transparent;
+  border-bottom: 0.55rem solid transparent;
+  border-left: 0.9rem solid #00112d;
+}
+
+.group:hover .video-play-button {
+  transform: scale(1.08);
+  background: #ffffff;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
