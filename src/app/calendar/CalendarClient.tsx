@@ -5,22 +5,29 @@ import Image from "next/image";
 import type { Category, Match, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import { CategoryTabs } from "@/components/CategoryTabs";
+import {
+  getMatchStageLabel,
+  isGroupStage,
+  resolveMatchStage,
+  type MatchStage,
+} from "@/lib/matchStage";
 import { MapPin } from "lucide-react";
 
 type CalendarClientProps = {
   categories: Category[];
 };
 
-type GroupBlock = {
-  groupKey: string;
-  groupName: string;
+type SectionBlock = {
+  sectionKey: string;
+  sectionName: string;
+  sortOrder: number;
   matches: Match[];
 };
 
 type DateGroup = {
   dateKey: string;
   label: string;
-  groups: GroupBlock[];
+  sections: SectionBlock[];
   matchCount: number;
 };
 
@@ -49,8 +56,11 @@ const GEORGIAN_WEEKDAYS = [
   "შაბათი",
 ];
 
-const UNGROUPED_KEY = "__ungrouped__";
-const UNGROUPED_LABEL = "სხვა ჯგუფი";
+const STAGE_SORT_ORDER: Record<MatchStage, number> = {
+  GROUP: 0,
+  SEMIFINAL: 1,
+  FINAL: 2,
+};
 
 function getTeam(team: Match["homeTeam"]): Team | null {
   if (!team || typeof team === "string") return null;
@@ -67,13 +77,45 @@ function getTeamLogo(team: Match["homeTeam"]): string | undefined {
   return getTeam(team)?.logo;
 }
 
-function getGroupInfo(match: Match): { key: string; name: string } {
+function getSectionInfo(match: Match): {
+  key: string;
+  name: string;
+  sortOrder: number;
+} {
+  const stage = resolveMatchStage(match.stage);
+
+  if (!isGroupStage(stage)) {
+    return {
+      key: `stage:${stage}`,
+      name: getMatchStageLabel(stage),
+      sortOrder: STAGE_SORT_ORDER[stage],
+    };
+  }
+
   const g = match.group;
-  if (!g) return { key: UNGROUPED_KEY, name: UNGROUPED_LABEL };
-  if (typeof g === "string") return { key: g, name: UNGROUPED_LABEL };
-  const key = g._id ?? g.name ?? UNGROUPED_KEY;
-  const name = g.name?.trim() || UNGROUPED_LABEL;
-  return { key, name };
+  if (!g) {
+    return {
+      key: "group:ungrouped",
+      name: getMatchStageLabel("GROUP"),
+      sortOrder: STAGE_SORT_ORDER.GROUP,
+    };
+  }
+
+  if (typeof g === "string") {
+    return {
+      key: `group:${g}`,
+      name: g,
+      sortOrder: STAGE_SORT_ORDER.GROUP,
+    };
+  }
+
+  const key = g._id ?? g.name ?? "group:ungrouped";
+  const name = g.name?.trim() || getMatchStageLabel("GROUP");
+  return {
+    key: `group:${key}`,
+    name,
+    sortOrder: STAGE_SORT_ORDER.GROUP,
+  };
 }
 
 function formatDateLabel(dateStr: string): string {
@@ -101,7 +143,7 @@ function sortMatches(a: Match, b: Match): number {
   return formatTime(a).localeCompare(formatTime(b));
 }
 
-function groupByDateThenGroup(matches: Match[]): DateGroup[] {
+function groupByDateThenSection(matches: Match[]): DateGroup[] {
   const byDate = new Map<string, Match[]>();
 
   for (const m of matches) {
@@ -115,33 +157,38 @@ function groupByDateThenGroup(matches: Match[]): DateGroup[] {
   return Array.from(byDate.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([dateKey, dayMatches]) => {
-      const byGroup = new Map<string, GroupBlock>();
+      const bySection = new Map<string, SectionBlock>();
 
       for (const match of dayMatches) {
-        const { key, name } = getGroupInfo(match);
-        const existing = byGroup.get(key);
+        const { key, name, sortOrder } = getSectionInfo(match);
+        const existing = bySection.get(key);
         if (existing) {
           existing.matches.push(match);
         } else {
-          byGroup.set(key, { groupKey: key, groupName: name, matches: [match] });
+          bySection.set(key, {
+            sectionKey: key,
+            sectionName: name,
+            sortOrder,
+            matches: [match],
+          });
         }
       }
 
-      const groups = Array.from(byGroup.values())
-        .map((g) => ({
-          ...g,
-          matches: [...g.matches].sort(sortMatches),
+      const sections = Array.from(bySection.values())
+        .map((section) => ({
+          ...section,
+          matches: [...section.matches].sort(sortMatches),
         }))
         .sort((a, b) => {
-          if (a.groupKey === UNGROUPED_KEY) return 1;
-          if (b.groupKey === UNGROUPED_KEY) return -1;
-          return a.groupName.localeCompare(b.groupName, "ka");
+          const byStage = a.sortOrder - b.sortOrder;
+          if (byStage !== 0) return byStage;
+          return a.sectionName.localeCompare(b.sectionName, "ka");
         });
 
       return {
         dateKey,
         label: formatDateLabel(dateKey),
-        groups,
+        sections,
         matchCount: dayMatches.length,
       };
     });
@@ -339,7 +386,7 @@ export function CalendarClient({ categories }: CalendarClientProps) {
     };
   }, [selectedCategoryId]);
 
-  const grouped = useMemo(() => groupByDateThenGroup(matches), [matches]);
+  const grouped = useMemo(() => groupByDateThenSection(matches), [matches]);
 
   const hasCategories = categories.length > 0;
 
@@ -385,15 +432,15 @@ export function CalendarClient({ categories }: CalendarClientProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {dateGroup.groups.map((groupBlock) => (
-                    <div key={`${dateGroup.dateKey}-${groupBlock.groupKey}`} className="space-y-2">
+                  {dateGroup.sections.map((section) => (
+                    <div key={`${dateGroup.dateKey}-${section.sectionKey}`} className="space-y-2">
                       <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-[#9d4300] arial-caps sm:text-sm">
-                        {groupBlock.groupName}
+                        {section.sectionName}
                       </h3>
 
                       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
                         <ul className="divide-y divide-zinc-100">
-                          {groupBlock.matches.map((match) => (
+                          {section.matches.map((match) => (
                             <MatchRow key={match._id} match={match} />
                           ))}
                         </ul>
