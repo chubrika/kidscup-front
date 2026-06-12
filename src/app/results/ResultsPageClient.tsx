@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, Match } from "@/lib/api";
 import { API_URL } from "@/lib/api";
+import {
+  MATCH_STAGE_SECTIONS,
+  resolveMatchStage,
+  type MatchStage,
+} from "@/lib/matchStage";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -103,6 +108,20 @@ export default function ResultsPageClient({
     });
   }, [matches]);
 
+  const matchesByStage = useMemo(() => {
+    const buckets = new Map<MatchStage, Match[]>(
+      MATCH_STAGE_SECTIONS.map(({ stage }) => [stage, []]),
+    );
+    for (const m of sortedMatches) {
+      buckets.get(resolveMatchStage(m.stage))?.push(m);
+    }
+    return MATCH_STAGE_SECTIONS.map(({ stage, title }) => ({
+      stage,
+      title,
+      matches: buckets.get(stage) ?? [],
+    }));
+  }, [sortedMatches]);
+
   const selectedCategoryName = useMemo(() => {
     return categories.find((c) => c._id === selectedCategoryId)?.name ?? "ყველა";
   }, [categories, selectedCategoryId]);
@@ -152,89 +171,102 @@ export default function ResultsPageClient({
             )}
 
             {!loading && !error && sortedMatches.length > 0 && (
-              <table className="w-full dejavu-sans text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 text-zinc-700">
-                    <th className="py-3 pl-4 text-left font-normal">თარიღი</th>
-                    <th className="py-3 text-left font-normal">გუნდი</th>
-                    <th className="w-[110px] py-3 text-center font-normal">ანგარიში</th>
-                    <th className="py-3 pr-4 text-right font-normal">გუნდი</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedMatches.map((m) => (
-                    <tr
-                      key={m._id}
-                      role="link"
-                      tabIndex={0}
-                      onClick={() => router.push(`/matches/${encodeURIComponent(m._id)}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          router.push(`/matches/${encodeURIComponent(m._id)}`);
-                        }
-                      }}
-                      className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9d4300]/60 focus-visible:ring-offset-2"
-                    >
-                      <td className="py-3 pl-4 text-zinc-600 whitespace-nowrap">
-                        {formatMatchDate(m.date)}
-                      </td>
+              <div className="divide-y divide-zinc-200">
+                {matchesByStage.map(({ stage, title, matches: stageMatches }) =>
+                  stageMatches.length === 0 ? null : (
+                    <section key={stage} className="py-2">
+                      <h2 className="px-4 py-3 text-sm font-semibold text-[#00306d] arial-caps">
+                        {title}
+                      </h2>
+                      <table className="w-full dejavu-sans text-sm">
+                        <thead>
+                          <tr className="border-b border-zinc-200 text-zinc-700">
+                            <th className="py-3 pl-4 text-left font-normal">თარიღი</th>
+                            <th className="py-3 text-left font-normal">გუნდი</th>
+                            <th className="w-[110px] py-3 text-center font-normal">ანგარიში</th>
+                            <th className="py-3 pr-4 text-right font-normal">გუნდი</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stageMatches.map((m) => (
+                            <tr
+                              key={m._id}
+                              role="link"
+                              tabIndex={0}
+                              onClick={() => router.push(`/matches/${encodeURIComponent(m._id)}`)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  router.push(`/matches/${encodeURIComponent(m._id)}`);
+                                }
+                              }}
+                              className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9d4300]/60 focus-visible:ring-offset-2"
+                            >
+                              <td className="py-3 pl-4 text-zinc-600 whitespace-nowrap">
+                                <div className="flex flex-col gap-1">
+                                  <span>{formatMatchDate(m.date)}</span>
+                                </div>
+                              </td>
 
-                      <td className="py-3 text-zinc-900">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-100">
-                            {getTeamLogo(m.homeTeam) ? (
-                              <Image
-                                src={getTeamLogo(m.homeTeam)!}
-                                alt={getTeamName(m.homeTeam)}
-                                fill
-                                className="object-cover"
-                                sizes="28px"
-                                unoptimized
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-[11px] font-medium text-zinc-600">
-                                {getTeamName(m.homeTeam).charAt(0)}
-                              </span>
-                            )}
-                          </div>
-                          <span className="truncate max-w-[260px]">{getTeamName(m.homeTeam)}</span>
-                        </div>
-                      </td>
+                              <td className="py-3 text-zinc-900">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-100">
+                                    {getTeamLogo(m.homeTeam) ? (
+                                      <Image
+                                        src={getTeamLogo(m.homeTeam)!}
+                                        alt={getTeamName(m.homeTeam)}
+                                        fill
+                                        className="object-cover"
+                                        sizes="28px"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <span className="flex h-full w-full items-center justify-center text-[11px] font-medium text-zinc-600">
+                                        {getTeamName(m.homeTeam).charAt(0)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="truncate max-w-[260px]">{getTeamName(m.homeTeam)}</span>
+                                </div>
+                              </td>
 
-                      <td className="py-3 text-center font-semibold text-zinc-900 tabular-nums">
-                        <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-1 border border-zinc-200">
-                          {formatScore(m)}
-                        </span>
-                      </td>
+                              <td className="py-3 text-center font-semibold text-zinc-900 tabular-nums">
+                                <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-1 border border-zinc-200">
+                                  {formatScore(m)}
+                                </span>
+                              </td>
 
-                      <td className="py-3 pr-4 text-zinc-900">
-                        <div className="flex items-center justify-end gap-2 min-w-0">
-                          <span className="truncate max-w-[260px] text-right">
-                            {getTeamName(m.awayTeam)}
-                          </span>
-                          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-100">
-                            {getTeamLogo(m.awayTeam) ? (
-                              <Image
-                                src={getTeamLogo(m.awayTeam)!}
-                                alt={getTeamName(m.awayTeam)}
-                                fill
-                                className="object-cover"
-                                sizes="28px"
-                                unoptimized
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-[11px] font-medium text-zinc-600">
-                                {getTeamName(m.awayTeam).charAt(0)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              <td className="py-3 pr-4 text-zinc-900">
+                                <div className="flex items-center justify-end gap-2 min-w-0">
+                                  <span className="truncate max-w-[260px] text-right">
+                                    {getTeamName(m.awayTeam)}
+                                  </span>
+                                  <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-100">
+                                    {getTeamLogo(m.awayTeam) ? (
+                                      <Image
+                                        src={getTeamLogo(m.awayTeam)!}
+                                        alt={getTeamName(m.awayTeam)}
+                                        fill
+                                        className="object-cover"
+                                        sizes="28px"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <span className="flex h-full w-full items-center justify-center text-[11px] font-medium text-zinc-600">
+                                        {getTeamName(m.awayTeam).charAt(0)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </section>
+                  ),
+                )}
+              </div>
             )}
           </div>
         </div>

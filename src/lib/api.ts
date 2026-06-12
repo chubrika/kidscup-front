@@ -51,6 +51,8 @@ export type MatchStatus =
   | "postponed"
   | "cancelled";
 
+export type MatchStage = "GROUP" | "SEMIFINAL" | "FINAL";
+
 export type Match = {
   _id: string;
   homeTeam: Team | string;
@@ -66,6 +68,7 @@ export type Match = {
   season?: string | Season;
   group?: Group | string;
   round?: Round | string;
+  stage?: MatchStage;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -249,6 +252,7 @@ export async function getMatches(params?: {
   seasonId?: string | null;
   groupId?: string | null;
   roundId?: string | null;
+  stage?: MatchStage | null;
 }): Promise<Match[]> {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
@@ -256,6 +260,7 @@ export async function getMatches(params?: {
   if (params?.seasonId) search.set("seasonId", params.seasonId);
   if (params?.groupId) search.set("groupId", params.groupId);
   if (params?.roundId) search.set("roundId", params.roundId);
+  if (params?.stage) search.set("stage", params.stage);
 
   const query = search.toString();
   const url = query ? `${API_URL}/matches?${query}` : `${API_URL}/matches`;

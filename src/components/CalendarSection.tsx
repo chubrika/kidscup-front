@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Category, Group, Match, Season, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
+import {
+  isGroupStage,
+  MATCH_STAGE_SECTIONS,
+  type MatchStage,
+} from "@/lib/matchStage";
 import Link from "next/link";
 import { ArrowRight, CalendarDays } from "lucide-react";
 
@@ -121,22 +126,38 @@ function TeamChip({
 }
 
 const MAX_MATCHES_PER_GROUP = 8;
+const MAX_PLAYOFF_MATCHES = 8;
+
+const GROUP_STAGE_TITLE =
+  MATCH_STAGE_SECTIONS.find((s) => s.stage === "GROUP")?.title ?? "Group Stage";
+const SEMIFINAL_TITLE =
+  MATCH_STAGE_SECTIONS.find((s) => s.stage === "SEMIFINAL")?.title ?? "Semifinal";
+const FINAL_TITLE =
+  MATCH_STAGE_SECTIONS.find((s) => s.stage === "FINAL")?.title ?? "Final";
 
 async function fetchScheduledMatches(
   categoryId: string,
   seasonId: string | null,
-  groupId: string,
+  options: { groupId?: string; stage?: MatchStage },
   signal: AbortSignal
 ): Promise<Match[]> {
   const search = new URLSearchParams();
   search.set("status", "scheduled");
   search.set("ageCategory", categoryId);
   if (seasonId) search.set("seasonId", seasonId);
-  search.set("groupId", groupId);
+  if (options.groupId) search.set("groupId", options.groupId);
+  if (options.stage) search.set("stage", options.stage);
 
   const res = await fetch(`${API_URL}/matches?${search.toString()}`, { signal });
   if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
+  const matches: Match[] = await res.json();
+  if (options.stage) {
+    return matches.filter((m) => (m.stage ?? "GROUP") === options.stage);
+  }
+  if (options.groupId) {
+    return matches.filter((m) => isGroupStage(m.stage));
+  }
+  return matches;
 }
 
 function EmptyScheduledMatches({ groupName }: { groupName?: string }) {
@@ -157,12 +178,22 @@ function EmptyScheduledMatches({ groupName }: { groupName?: string }) {
   );
 }
 
+function StageSectionTitle({ title }: { title: string }) {
+  return (
+    <h3 className="arial-caps text-sm font-semibold tracking-tight text-[#00112d] sm:text-base">
+      {title}
+    </h3>
+  );
+}
+
 function GroupCalendarBlock({
   groupName,
   matchesByDate,
+  showStageBadge = false,
 }: {
   groupName?: string;
   matchesByDate: [string, Match[]][];
+  showStageBadge?: boolean;
 }) {
   const hasMatches = matchesByDate.length > 0;
 
@@ -185,9 +216,11 @@ function GroupCalendarBlock({
             {dayMatches.map((m) => (
               <li key={m._id}>
                 <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-                  <span className="w-9 shrink-0 text-center text-xs font-semibold tabular-nums text-[#00112d] sm:w-10 sm:text-sm">
-                    {formatUpcomingTimeLabel(m)}
-                  </span>
+                  <div className="flex w-9 shrink-0 flex-col items-center gap-1 sm:w-10">
+                    <span className="text-center text-xs font-semibold tabular-nums text-[#00112d] sm:text-sm">
+                      {formatUpcomingTimeLabel(m)}
+                    </span>
+                  </div>
 
                   <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
                     <TeamChip team={m.homeTeam} side="home" />
@@ -216,6 +249,12 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [matchesByDate, setMatchesByDate] = useState<[string, Match[]][]>([]);
+  const [semifinalMatchesByDate, setSemifinalMatchesByDate] = useState<
+    [string, Match[]][]
+  >([]);
+  const [finalMatchesByDate, setFinalMatchesByDate] = useState<[string, Match[]][]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -300,8 +339,10 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
     let cancelled = false;
     const controller = new AbortController();
 
-    if (!selectedCategoryId || !activeGroup) {
+    if (!selectedCategoryId) {
       setMatchesByDate([]);
+      setSemifinalMatchesByDate([]);
+      setFinalMatchesByDate([]);
       setLoading(false);
       setError(null);
       return () => controller.abort();
@@ -310,21 +351,44 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
     setLoading(true);
     setError(null);
 
-    fetchScheduledMatches(
+    const groupFetch = activeGroup
+      ? fetchScheduledMatches(
+          selectedCategoryId,
+          selectedSeasonId,
+          { groupId: activeGroup._id, stage: "GROUP" },
+          controller.signal
+        )
+      : Promise.resolve([] as Match[]);
+
+    const semifinalFetch = fetchScheduledMatches(
       selectedCategoryId,
       selectedSeasonId,
-      activeGroup._id,
+      { stage: "SEMIFINAL" },
       controller.signal
-    )
-      .then((matches) => {
-        if (!cancelled) {
-          setMatchesByDate(buildMatchesByDate(matches, MAX_MATCHES_PER_GROUP));
-        }
+    );
+
+    const finalFetch = fetchScheduledMatches(
+      selectedCategoryId,
+      selectedSeasonId,
+      { stage: "FINAL" },
+      controller.signal
+    );
+
+    Promise.all([groupFetch, semifinalFetch, finalFetch])
+      .then(([groupMatches, semifinalMatches, finalMatches]) => {
+        if (cancelled) return;
+        setMatchesByDate(buildMatchesByDate(groupMatches, MAX_MATCHES_PER_GROUP));
+        setSemifinalMatchesByDate(
+          buildMatchesByDate(semifinalMatches, MAX_PLAYOFF_MATCHES)
+        );
+        setFinalMatchesByDate(buildMatchesByDate(finalMatches, MAX_PLAYOFF_MATCHES));
       })
       .catch((e) => {
         if (!cancelled && e.name !== "AbortError") {
           setError(e instanceof Error ? e.message : "Error");
           setMatchesByDate([]);
+          setSemifinalMatchesByDate([]);
+          setFinalMatchesByDate([]);
         }
       })
       .finally(() => {
@@ -379,51 +443,79 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
         </div>
       </div>
 
-      {sortedGroups.length > 1 && (
-        <div className="mt-3 pb-2 sm:mt-4">
-          <div
-            className="flex flex-wrap justify-start gap-3"
-            role="tablist"
-            aria-label="ჯგუფის ფილტრი"
-          >
-            {sortedGroups.map((group) => (
-              <button
-                key={group._id}
-                type="button"
-                role="tab"
-                aria-selected={activeGroupId === group._id}
-                onClick={() => setActiveGroupId(group._id)}
-                className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${
-                  activeGroupId === group._id
-                    ? "text-[#9d4300]"
-                    : "text-zinc-500 hover:text-zinc-700"
-                }`}
-              >
-                {group.name}
-                {activeGroupId === group._id && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-[#9d4300]" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="mt-4 flex flex-col gap-6 sm:mt-5 sm:gap-8">
         {error && <p className="px-1 text-xs text-red-600 sm:text-sm">{error}</p>}
         {loading && (
           <p className="px-1 text-xs text-zinc-500 sm:text-sm">იტვირთება...</p>
         )}
-        {!loading && !error && sortedGroups.length === 0 && (
-          <p className="px-1 text-xs text-zinc-500 sm:text-sm">
-            ჯგუფები არ მოიძებნა
-          </p>
-        )}
-        {!loading && !error && activeGroup && (
-          <GroupCalendarBlock
-            groupName={activeGroup.name}
-            matchesByDate={matchesByDate}
-          />
+
+        {!loading && !error && selectedCategoryId && (
+          <>
+            <section className="flex flex-col gap-3">
+              <StageSectionTitle title={GROUP_STAGE_TITLE} />
+
+              {sortedGroups.length > 1 && (
+                <div className="pb-1">
+                  <div
+                    className="flex flex-wrap justify-start gap-3"
+                    role="tablist"
+                    aria-label="ჯგუფის ფილტრი"
+                  >
+                    {sortedGroups.map((group) => (
+                      <button
+                        key={group._id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeGroupId === group._id}
+                        onClick={() => setActiveGroupId(group._id)}
+                        className={`relative py-1 cursor-pointer text-xs font-medium transition-colors duration-200 arial-caps ${
+                          activeGroupId === group._id
+                            ? "text-[#9d4300]"
+                            : "text-zinc-500 hover:text-zinc-700"
+                        }`}
+                      >
+                        {group.name}
+                        {activeGroupId === group._id && (
+                          <span className="absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-[#9d4300]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeGroup ? (
+                <GroupCalendarBlock
+                  groupName={activeGroup.name}
+                  matchesByDate={matchesByDate}
+                />
+              ) : (
+                <p className="px-1 text-xs text-zinc-500 sm:text-sm">
+                  ჯგუფები არ მოიძებნა
+                </p>
+              )}
+            </section>
+
+            {semifinalMatchesByDate.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <StageSectionTitle title={SEMIFINAL_TITLE} />
+                <GroupCalendarBlock
+                  matchesByDate={semifinalMatchesByDate}
+                  showStageBadge
+                />
+              </section>
+            )}
+
+            {finalMatchesByDate.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <StageSectionTitle title={FINAL_TITLE} />
+                <GroupCalendarBlock
+                  matchesByDate={finalMatchesByDate}
+                  showStageBadge
+                />
+              </section>
+            )}
+          </>
         )}
 
         {!loading && (

@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { Category, Group, Match, Round, Season } from "@/lib/api";
 import { API_URL } from "@/lib/api";
+import { MatchStageBadge } from "@/components/matches/MatchStageBadge";
+import {
+  MATCH_STAGE_SECTIONS,
+  resolveMatchStage,
+  type MatchStage,
+} from "@/lib/matchStage";
 import { ChevronDownIcon } from "lucide-react";
 
 type LeagueMatchesSectionProps = {
@@ -210,6 +216,21 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
     return list;
   }, [matches, selectedGroupId, selectedRoundId]);
 
+  const matchesByStage = useMemo(() => {
+    const buckets = new Map<MatchStage, Match[]>(
+      MATCH_STAGE_SECTIONS.map(({ stage }) => [stage, []]),
+    );
+    for (const m of filteredMatches) {
+      const stage = resolveMatchStage(m.stage);
+      buckets.get(stage)?.push(m);
+    }
+    return MATCH_STAGE_SECTIONS.map(({ stage, title }) => ({
+      stage,
+      title,
+      matches: buckets.get(stage) ?? [],
+    }));
+  }, [filteredMatches]);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -326,45 +347,57 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
           მატჩები არ მოიძებნა
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredMatches.map((m) => (
-            <article
-              key={m._id}
-              className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2">
-                  <span className="text-[11px] text-zinc-500 dejavu-sans">
-                    {roundLabel(m) ? `${roundLabel(m)} · ` : ""}
-                    {formatDateGeorgian(m.date)}
-                  </span>
-                  {m.time && (
-                    <span className="text-[11px] text-zinc-500 dejavu-sans">
-                      {formatTime(m)}
-                    </span>
-                  )}
+        <div className="space-y-8">
+          {matchesByStage.map(({ stage, title, matches: stageMatches }) =>
+            stageMatches.length === 0 ? null : (
+              <section key={stage} className="space-y-3">
+                <h3 className="text-sm font-semibold text-zinc-800 arial-caps">{title}</h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {stageMatches.map((m) => (
+                    <article
+                      key={m._id}
+                      className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2">
+                          <span className="text-[11px] text-zinc-500 dejavu-sans">
+                            {roundLabel(m) ? `${roundLabel(m)} · ` : ""}
+                            {formatDateGeorgian(m.date)}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <MatchStageBadge stage={m.stage} />
+                            {m.time && (
+                              <span className="text-[11px] text-zinc-500 dejavu-sans">
+                                {formatTime(m)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate text-sm font-medium text-zinc-900 arial-caps">
+                            {getTeamName(m.homeTeam)}
+                          </span>
+                          <span className="flex-shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dejavu-sans">
+                            {m.status === "finished"
+                              ? formatScore(m)
+                              : formatStatus(m.status)}
+                          </span>
+                          <span className="min-w-0 truncate text-right text-sm font-medium text-zinc-900 arial-caps">
+                            {getTeamName(m.awayTeam)}
+                          </span>
+                        </div>
+                        {m.location && (
+                          <p className="text-[11px] text-zinc-500 arial-caps">
+                            {m.location}
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-medium text-zinc-900 arial-caps">
-                    {getTeamName(m.homeTeam)}
-                  </span>
-                  <span className="flex-shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dejavu-sans">
-                    {m.status === "finished"
-                      ? formatScore(m)
-                      : formatStatus(m.status)}
-                  </span>
-                  <span className="min-w-0 truncate text-right text-sm font-medium text-zinc-900 arial-caps">
-                    {getTeamName(m.awayTeam)}
-                  </span>
-                </div>
-                {m.location && (
-                  <p className="text-[11px] text-zinc-500 arial-caps">
-                    {m.location}
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
+              </section>
+            ),
+          )}
         </div>
       )}
     </div>

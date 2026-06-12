@@ -10,6 +10,7 @@ import {
   type MatchStatus,
   type Player,
 } from "@/lib/api";
+import { isGroupStage } from "@/lib/matchStage";
 
 type PageParams = { id: string };
 
@@ -127,6 +128,7 @@ function buildSummary(games: TeamGameView[]): TeamSummary {
   };
 
   for (const game of games) {
+    if (!isGroupStage(game.match.stage)) continue;
     if (game.match.status !== "finished") continue;
     if (game.teamScore == null || game.opponentScore == null) continue;
 

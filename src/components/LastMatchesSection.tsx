@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, Match } from "@/lib/api";
 import { API_URL } from "@/lib/api";
+import { MatchStageBadge } from "@/components/matches/MatchStageBadge";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -173,6 +174,12 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
                   className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fd7209]/60 focus-visible:ring-inset"
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="mb-0.5">
+                      <MatchStageBadge
+                        stage={m.stage}
+                        className="!bg-white/10 !text-white/90 !ring-white/20"
+                      />
+                    </div>
                     <TeamLine team={m.homeTeam} />
                     <TeamLine team={m.awayTeam} />
                   </div>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Match, MatchStatsResponse } from "@/lib/api";
+import { MatchStageBadge } from "@/components/matches/MatchStageBadge";
 import { CalendarDays, MapPin, Timer } from "lucide-react";
 
 type MatchDetailPageClientProps = {
@@ -117,8 +118,11 @@ export default function MatchDetailPageClient({ match, stats }: MatchDetailPageC
         <div className="relative px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white/90">
-                <span className="dejavu-sans">{categoryName || "მატჩი"}</span>
+              <div className="inline-flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white/90">
+                  <span className="dejavu-sans">{categoryName || "მატჩი"}</span>
+                </div>
+                <MatchStageBadge stage={match.stage} className="!bg-white/15 !text-white !ring-white/25" />
               </div>
               <div className="text-xs text-white/80 dejavu-sans">
                 {formatDate(match.date)}
