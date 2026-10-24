@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = "IGAAZAOQYx6s69BZAGFvQVI5UHY3aUFJX2U4d19mN1ROZAjRJUVNpQmdkYU55MERubUhIQmpZAdl9EeFJPd0tWTFo2Y1o0WHBGM2dZARjh1UnlfYU1XQVhnZAE95LWN5S1dmbTJYRjNzcXJQdEx6Yjh5eTdhWVVfMDgyOW9nT0U1ZAV9qdwZDZD";
+  const token = process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN;
   if (!token) {
     return NextResponse.json({ error: "Missing Instagram access token" }, { status: 500 });
   }

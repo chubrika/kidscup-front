@@ -34,7 +34,7 @@ function hasText(value: string | undefined): value is string {
 }
 
 export async function getInstagramVideos(): Promise<InstagramVideo[]> {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const token = process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN;
   if (!token) return [];
 
   try {

@@ -1,5 +1,3 @@
-"use client";
-
 import { Instagram } from "lucide-react";
 import { getInstagramVideos, INSTAGRAM_PROFILE_URL, INSTAGRAM_USERNAME } from "@/lib/instagram";
 
