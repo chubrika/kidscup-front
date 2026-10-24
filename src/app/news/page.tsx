@@ -19,7 +19,7 @@ export default async function NewsPage() {
   try {
     news = await getNews();
   } catch {
-    // show empty state if API fails
+    return [];
   }
 
   const sortedNews = [...news].sort((a, b) => {
