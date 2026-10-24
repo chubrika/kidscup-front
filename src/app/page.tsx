@@ -71,8 +71,6 @@ export default async function Home() {
               <LastMatchesSection categories={categories} />
             </div>
           </div>
-          <div className="test">
-          </div>
           <InstagramWidget />
         </div>
       </div>
