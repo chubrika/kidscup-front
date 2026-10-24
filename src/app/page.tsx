@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getCategories, getNews, getTeams, Team } from "@/lib/api";
 import { fetchPublicConfig } from "@/lib/publicConfig";
 import { CalendarSection } from "@/components/CalendarSection";
@@ -8,6 +9,7 @@ import { RegisterSection } from "@/components/RegisterSection";
 import { StandingsSection } from "@/components/StandingsSection";
 import { LatestAlbumsSection } from "@/components/LatestAlbumsSection";
 import { InstagramWidget } from "@/components/InstagramWidget";
+import { TikTokFeed, TikTokFeedSkeleton } from "@/components/TikTokFeed";
 import { TeamsMarquee } from "@/components/TeamsMarquee";
 
 export default async function Home() {
@@ -72,6 +74,9 @@ export default async function Home() {
             </div>
           </div>
           <InstagramWidget />
+          <Suspense fallback={<TikTokFeedSkeleton />}>
+            <TikTokFeed />
+          </Suspense>
         </div>
       </div>
     </div>
