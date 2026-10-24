@@ -25,7 +25,7 @@ function hasText(value: string | undefined): value is string {
 }
 
 export function getTikTokUsername(): string {
-  const raw = "tbilisikidscup";
+  const raw ="tbilisikidscup";
   const username = raw.trim().replace(/^@/, "");
   return /^[A-Za-z0-9._]{2,24}$/.test(username) ? username : "";
 }

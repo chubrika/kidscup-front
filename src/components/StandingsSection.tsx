@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import type { Category, StandingRow, StandingRowTeamRef, StandingsGroup, Team } from "@/lib/api";
+import type { Category, Season, StandingRow, StandingRowTeamRef, StandingsGroup, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import Link from "next/link";
 
@@ -12,19 +12,49 @@ type StandingsSectionProps = {
   categories: Category[];
 };
 
-async function fetchStandings(ageCategoryId: string | null): Promise<StandingsGroup[]> {
+function seasonKey(
+  seasonId: StandingsGroup["seasonId"] | { _id?: string } | null | undefined
+): string | null {
+  if (!seasonId) return null;
+  if (typeof seasonId === "string") return seasonId;
+  return seasonId._id ? String(seasonId._id) : null;
+}
+
+/** Newest Mongo id is the season added last; that season is the active one. */
+function lastAddedSeasonId(seasons: Season[]): string | null {
+  if (seasons.length === 0) return null;
+  return [...seasons].sort((a, b) => (a._id < b._id ? 1 : a._id > b._id ? -1 : 0))[0]._id;
+}
+
+async function fetchSeasons(ageCategoryId: string | null): Promise<Season[]> {
   const url = ageCategoryId
-    ? `${API_URL}/standings?ageCategory=${encodeURIComponent(ageCategoryId)}`
-    : `${API_URL}/standings`;
+    ? `${API_URL}/seasons?ageCategory=${encodeURIComponent(ageCategoryId)}`
+    : `${API_URL}/seasons`;
+  const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
+  if (!res.ok) throw new Error("Failed to fetch seasons");
+  return res.json();
+}
+
+async function fetchStandings(
+  ageCategoryId: string | null,
+  seasonId: string | null
+): Promise<StandingsGroup[]> {
+  const search = new URLSearchParams();
+  if (ageCategoryId) search.set("ageCategory", ageCategoryId);
+  if (seasonId) search.set("seasonId", seasonId);
+  const query = search.toString();
+  const url = query ? `${API_URL}/standings?${query}` : `${API_URL}/standings`;
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch standings");
   return res.json();
 }
 
-async function fetchTeams(ageCategoryId: string | null): Promise<Team[]> {
-  const url = ageCategoryId
-    ? `${API_URL}/teams?ageCategory=${encodeURIComponent(ageCategoryId)}`
-    : `${API_URL}/teams`;
+async function fetchTeams(ageCategoryId: string | null, seasonId: string | null): Promise<Team[]> {
+  const search = new URLSearchParams();
+  if (ageCategoryId) search.set("ageCategory", ageCategoryId);
+  if (seasonId) search.set("season", seasonId);
+  const query = search.toString();
+  const url = query ? `${API_URL}/teams?${query}` : `${API_URL}/teams`;
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch teams");
   return res.json();
@@ -62,6 +92,7 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
   );
   const [standingsGroups, setStandingsGroups] = useState<StandingsGroup[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,17 +100,26 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
   const groupTabs = useMemo(
     () =>
       standingsGroups
-        .filter((g) => g.scope !== "overall" && g.groupId)
+        .filter((g) => {
+          if (g.scope === "overall" || !g.groupId) return false;
+          const groupSeasonId = seasonKey(g.seasonId);
+          if (activeSeasonId && groupSeasonId && groupSeasonId !== activeSeasonId) return false;
+          return true;
+        })
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-    [standingsGroups]
+    [standingsGroups, activeSeasonId]
   );
 
   const activeGroup = useMemo(() => {
+    const inSeason = standingsGroups.filter((g) => {
+      const groupSeasonId = seasonKey(g.seasonId);
+      return !activeSeasonId || !groupSeasonId || groupSeasonId === activeSeasonId;
+    });
     if (groupTabs.length > 0) {
       return groupTabs.find((g) => g.groupId === activeGroupId) ?? groupTabs[0] ?? null;
     }
-    return standingsGroups[0] ?? null;
-  }, [groupTabs, activeGroupId, standingsGroups]);
+    return inSeason[0] ?? null;
+  }, [groupTabs, activeGroupId, standingsGroups, activeSeasonId]);
 
   const activeStandings = useMemo(
     () => (activeGroup ? enrichStandings(activeGroup.standings, teams) : []),
@@ -98,11 +138,14 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      const seasons = await fetchSeasons(selectedCategoryId);
+      const seasonId = lastAddedSeasonId(seasons);
       const [groups, teamList] = await Promise.all([
-        fetchStandings(selectedCategoryId),
-        fetchTeams(selectedCategoryId),
+        fetchStandings(selectedCategoryId, seasonId),
+        fetchTeams(selectedCategoryId, seasonId),
       ]);
       if (!cancelled) {
+        setActiveSeasonId(seasonId);
         setStandingsGroups(groups);
         setTeams(teamList);
       }
