@@ -10,6 +10,7 @@ import {
 } from "@/lib/matchStage";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type ResultsPageClientProps = {
   categories: Category[];
@@ -163,7 +164,7 @@ export default function ResultsPageClient({
 
           <div className="overflow-x-auto">
             {error && <p className="px-4 py-3 text-red-600 text-sm">{error}</p>}
-            {loading && <p className="px-4 py-3 text-zinc-500 text-sm">იტვირთება...</p>}
+            {loading && <SectionSkeleton variant="results" />}
             {!loading && !error && sortedMatches.length === 0 && (
               <p className="px-4 py-6 text-zinc-500 text-sm text-center">
                 დასრულებული მატჩები არ არის

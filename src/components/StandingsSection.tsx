@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { Category, Season, StandingRow, StandingRowTeamRef, StandingsGroup, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import Link from "next/link";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type EnrichedRow = StandingRow & { logo?: string };
 
@@ -224,9 +225,7 @@ export function StandingsSection({ categories }: StandingsSectionProps) {
         {error && (
           <p className="px-3 py-2.5 text-red-600 text-xs">{error}</p>
         )}
-        {loading && (
-          <p className="px-3 py-2.5 text-zinc-500 text-xs">იტვირთება...</p>
-        )}
+        {loading && <SectionSkeleton variant="standings" />}
         {!loading && !error && (
           <>
             {!activeGroup ? (

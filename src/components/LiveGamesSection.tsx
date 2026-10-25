@@ -8,6 +8,7 @@ import type { Category, Match, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import type { MatchStats } from "@/lib/liveStats";
 import { useLive } from "@/components/live/LiveProvider";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type LiveGamesSectionProps = {
   categories: Category[];
@@ -259,9 +260,7 @@ export function LiveGamesSection({ categories }: LiveGamesSectionProps) {
         {error && (
           <p className="px-1 text-xs text-red-600 sm:text-sm">{error}</p>
         )}
-        {loading && (
-          <p className="px-1 text-xs text-zinc-500 sm:text-sm">იტვირთება...</p>
-        )}
+        {loading && <SectionSkeleton variant="matches" />}
         {!loading && !error && hasAnyLive && matches.length === 0 && (
           <p className="px-1 text-xs text-zinc-500 sm:text-sm">
             ამ კატეგორიაში მიმდინარე მატჩები არ არის

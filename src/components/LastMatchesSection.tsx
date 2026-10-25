@@ -6,6 +6,7 @@ import { API_URL } from "@/lib/api";
 import { MatchStageBadge } from "@/components/matches/MatchStageBadge";
 import Image from "next/image";
 import Link from "next/link";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type LastMatchesSectionProps = {
   categories: Category[];
@@ -157,9 +158,7 @@ export function LastMatchesSection({ categories }: LastMatchesSectionProps) {
         {error && (
           <p className="px-3 py-2.5 text-red-600 text-xs">{error}</p>
         )}
-        {loading && (
-          <p className="px-3 py-2.5 text-zinc-500 text-xs">იტვირთება...</p>
-        )}
+        {loading && <SectionSkeleton variant="last-matches" />}
         {!loading && !error && lastMatches.length === 0 && (
           <p className="px-3 py-3 text-zinc-500 text-xs text-center">
             დასრულებული მატჩები არ არის

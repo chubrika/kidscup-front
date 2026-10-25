@@ -10,6 +10,7 @@ import {
   type MatchStage,
 } from "@/lib/matchStage";
 import { ChevronDownIcon } from "lucide-react";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type LeagueMatchesSectionProps = {
   category: Category;
@@ -341,7 +342,7 @@ export function LeagueMatchesSection({ category }: LeagueMatchesSectionProps) {
       </div>
 
       {loadingMatches ? (
-        <p className="py-8 text-center text-zinc-500 arial-caps">იტვირთება...</p>
+        <SectionSkeleton variant="league" />
       ) : filteredMatches.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 py-8 text-center text-zinc-600 arial-caps">
           მატჩები არ მოიძებნა

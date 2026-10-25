@@ -11,6 +11,7 @@ import {
 } from "@/lib/matchStage";
 import Link from "next/link";
 import { ArrowRight, CalendarDays } from "lucide-react";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type CalendarSectionProps = {
   categories: Category[];
@@ -445,9 +446,7 @@ export function CalendarSection({ categories }: CalendarSectionProps) {
 
       <div className="mt-4 flex flex-col gap-6 sm:mt-5 sm:gap-8">
         {error && <p className="px-1 text-xs text-red-600 sm:text-sm">{error}</p>}
-        {loading && (
-          <p className="px-1 text-xs text-zinc-500 sm:text-sm">იტვირთება...</p>
-        )}
+        {loading && <SectionSkeleton variant="calendar" />}
 
         {!loading && !error && selectedCategoryId && (
           <>

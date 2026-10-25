@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Camera } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { API_URL, type Season } from "@/lib/api";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 
 type AlbumLite = {
   _id: string;
@@ -85,7 +86,7 @@ export default function LatestAlbumsSectionClient() {
       </div>
 
       {loading ? (
-        <p className="mt-3 text-sm text-zinc-600">იტვირთება...</p>
+        <SectionSkeleton variant="albums" />
       ) : !hasAlbums ? (
         <p className="mt-3 text-sm text-zinc-600">ალბომები ჯერ არ არის.</p>
       ) : (

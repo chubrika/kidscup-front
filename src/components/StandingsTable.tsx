@@ -11,6 +11,7 @@ import type {
 } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import { CategoryTabs } from "@/components/CategoryTabs";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 import type { Dispatch, SetStateAction } from "react";
 
 type StandingsTableProps = {
@@ -242,7 +243,7 @@ export function StandingsTable({
           <p className="p-4 text-red-600 text-sm">{error}</p>
         )}
         {loading && (
-          <p className="p-4 text-zinc-500 text-sm">იტვირთება...</p>
+          <SectionSkeleton variant="table" />
         )}
         {!loading && !error && (
           <>

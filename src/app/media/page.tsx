@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { VideoCard } from "@/components/videos/VideoCard";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { API_URL, type Season, type Video } from "@/lib/api";
 
 const TABS = [
@@ -99,7 +100,7 @@ function VideosTab() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-zinc-600">იტვირთება...</p>;
+    return <SectionSkeleton variant="videos" />;
   }
 
   if (!videos.length) {
@@ -199,7 +200,7 @@ function SeasonPhotosTab() {
   const photos = selectedAlbum?.photos ?? [];
 
   if (loading) {
-    return <p className="text-sm text-zinc-600">იტვირთება...</p>;
+    return <SectionSkeleton variant="photos" />;
   }
 
   if (!seasons.length) {
@@ -388,12 +389,12 @@ function MediaPageSkeleton() {
             მედია
           </h1>
           <div className="flex gap-1.5">
-            <span className="h-7 w-16 rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
-            <span className="h-7 w-16 rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
+            <span className="h-7 w-16 animate-pulse rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
+            <span className="h-7 w-16 animate-pulse rounded-full bg-zinc-200 sm:h-8 sm:w-20" />
           </div>
         </div>
         <div className="p-6">
-          <p className="text-sm text-zinc-600">იტვირთება...</p>
+          <SectionSkeleton variant="photos" />
         </div>
       </section>
     </div>
