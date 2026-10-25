@@ -86,7 +86,7 @@ export function LivePageClient() {
         <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-5 py-4">
             <p className="text-sm font-semibold text-zinc-900">Live გუნდის ქულები</p>
-            <p className="mt-1 text-xs text-zinc-500">მონაცემები ახლდება რეალურ დროში</p>
+            <p className="mt-1 text-xs text-zinc-500">უახლესი ანგარიშის სანახავად განაახლე გვერდი</p>
           </div>
           <div className="px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

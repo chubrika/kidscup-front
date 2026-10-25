@@ -8,7 +8,6 @@ import type { Category, Match, Team } from "@/lib/api";
 import { API_URL } from "@/lib/api";
 import type { MatchStats } from "@/lib/liveStats";
 import { useLive } from "@/components/live/LiveProvider";
-import { createSocket } from "@/lib/socket";
 
 type LiveGamesSectionProps = {
   categories: Category[];
@@ -210,19 +209,6 @@ export function LiveGamesSection({ categories }: LiveGamesSectionProps) {
     const controller = new AbortController();
     void loadMatches(controller.signal);
     return () => controller.abort();
-  }, [loadMatches]);
-
-  useEffect(() => {
-    const socket = createSocket();
-    const onChange = () => {
-      const controller = new AbortController();
-      void loadMatches(controller.signal);
-      return () => controller.abort();
-    };
-    socket.on("matches:live-changed", onChange);
-    return () => {
-      socket.disconnect();
-    };
   }, [loadMatches]);
 
   const hasAnyLive = allLiveMatches.length > 0;
